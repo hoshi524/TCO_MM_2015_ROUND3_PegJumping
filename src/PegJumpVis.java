@@ -17,6 +17,8 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.SecureRandom;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -116,6 +118,14 @@ class TestCase {
 		numJumps = 0;
 		score = 0;
 		lastScore = -1;
+	}
+
+	String[] getBoard() {
+		String[] res = new String[board.length];
+		for (int i = 0; i < res.length; ++i) {
+			res[i] = new String(board[i]);
+		}
+		return res;
 	}
 
 	public boolean doMove(int x, int y, String mv) throws Exception {
@@ -335,13 +345,15 @@ public class PegJumpVis {
 	public static boolean vis = true;
 	public static boolean debug = false;
 	public static int cellSize = 12;
-	public static int delay = 100;
+	public static int delay = 1000;
 	public static boolean startPaused = false;
 
 	public int runTest(long seed) {
-
 		TestCase tc = new TestCase(seed);
+		return setResult(tc, new PegJumping().getMoves(tc.pegValue, tc.getBoard()));
+	}
 
+	int setResult(TestCase tc, String[] res) {
 		Drawer drawer = null;
 		if (vis) {
 			drawer = new Drawer(tc, cellSize);
@@ -352,13 +364,6 @@ public class PegJumpVis {
 		}
 
 		try {
-			String board[] = new String[tc.board.length];
-			for (int i = 0; i < tc.board.length; ++i) {
-				board[i] = new String(tc.board[i]);
-			}
-			long start = System.currentTimeMillis();
-			String[] res = new PegJumping().getMoves(tc.pegValue, board);
-			System.out.println("Time = " + (System.currentTimeMillis() - start));
 			int numMoves = res.length;
 			if (numMoves > tc.boardSize * tc.boardSize * 10) {
 				System.err.println("ERROR: Return array from getMoves too large.");
@@ -421,17 +426,65 @@ public class PegJumpVis {
 				System.out.println("WARNING: unknown argument " + args[i] + ".");
 			}
 
-		vis = false;
-		PegJumpVis vis = new PegJumpVis();
-		try {
-			for (long seed = 1; seed <= 1000; ++seed) {
-				int score = vis.runTest(seed);
-				System.out.println("Seed = " + seed + "   Score = " + score);
+		if (false) {
+			vis = true;
+			try {
+				for (long seed = 1; seed <= 1000; ++seed) {
+					TestCase tc = new TestCase(seed);
+					int score = new PegJumpVis().setResult(tc,
+							new CopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard()));
+					System.out.println("Seed = " + seed + "   Score = " + score);
+				}
+			} catch (RuntimeException e) {
+				System.err.println("ERROR: Unexpected error while running your test case.");
+				e.printStackTrace();
 			}
-		} catch (RuntimeException e) {
-			System.err.println("ERROR: Unexpected error while running your test case.");
-			e.printStackTrace();
+		} else {
+			vis = false;
+			new PegJumpVis().compare();
 		}
+	}
+
+	void compare() {
+		class ParameterClass {
+			volatile double d;
+			volatile int timeover;
+		}
+		PegJumpVis.debug = false;
+		final ParameterClass sum0 = new ParameterClass(), sum1 = new ParameterClass();
+		ExecutorService es = Executors.newFixedThreadPool(6);
+
+		for (int seed = 1, size = seed + 1000; seed < size; seed++) {
+			final int Seed = seed;
+			es.submit(() -> {
+				try {
+					TestCase tc = new TestCase(Seed);
+					long start0 = System.currentTimeMillis();
+					String res0[] = new CopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard());
+					long end0 = System.currentTimeMillis();
+					int score0 = new PegJumpVis().setResult(tc, res0);
+					tc = new TestCase(Seed);
+					long start1 = System.currentTimeMillis();
+					String res1[] = new PegJumping().getMoves(tc.pegValue, tc.getBoard());
+					long end1 = System.currentTimeMillis();
+					int score1 = new PegJumpVis().setResult(tc, res1);
+					int max = Math.max(score0, score1);
+					if (score0 > 0 && score1 > 0) {
+						sum0.d += (double) score0 / max;
+						sum1.d += (double) score1 / max;
+					}
+					if ((end0 - start0) >= 15000)
+						sum0.timeover++;
+					if ((end1 - start1) >= 15000)
+						sum1.timeover++;
+					System.out.println(String.format("%6d : %6d    %5d : %5d    %.1f : %.1f   %d : %d", score0, score1,
+							(end0 - start0), (end1 - start1), sum0.d, sum1.d, sum0.timeover, sum1.timeover));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			});
+		}
+		es.shutdown();
 	}
 }
 

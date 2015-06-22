@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class PegJumping {
+public class CopyOfPegJumping {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
