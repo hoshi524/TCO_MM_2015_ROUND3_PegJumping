@@ -1,3 +1,5 @@
+package dame;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,6 +18,18 @@ public class CopyOfPegJumping {
 	private State best;
 	private char[] dirc = { 'R', 'D', 'L', 'U' };
 	private XorShift rnd = new XorShift();
+
+	private byte getDir(int diff) {
+		if (diff == 2)
+			return 0;
+		if (diff == N2)
+			return 1;
+		if (diff == -2)
+			return 2;
+		if (diff == -N2)
+			return 3;
+		throw new RuntimeException();
+	}
 
 	public String[] getMoves(int[] pegValue, String[] board) {
 		{// input
@@ -41,7 +55,7 @@ public class CopyOfPegJumping {
 			while (true) {
 				List<State> next = new ArrayList<>();
 				Collections.sort(states, (o1, o2) -> o2.score - o1.score);
-				for (int i = 0, size = Math.min(states.size(), 10); i < size; ++i) {
+				for (int i = 0, size = Math.min(states.size(), 15); i < size; ++i) {
 					next.addAll(states.get(i).center(white));
 				}
 				if (next.isEmpty())
@@ -119,67 +133,71 @@ public class CopyOfPegJumping {
 				return res;
 
 			Set<Integer> used = new HashSet<>();
-			final int max = Math.min(1000, NN / 2), width = 20;
+			final int max = Math.min(1000, NN / 2), width = 30;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
+			byte dir[][] = new byte[max][width];
 			byte prev[][] = new byte[max][width];
 			for (int i = 0; i < 20; ++i) {
-				int p = start.get(rnd.nextInt(start.size()));
-				if (used.contains(p))
-					continue;
-				used.add(p);
-				Arrays.fill(size, 0);
-				size[0] = 1;
-				pos[0][0] = p;
+				{
+					int p = start.get(rnd.nextInt(start.size()));
+					if (used.contains(p))
+						continue;
+					used.add(p);
+					Arrays.fill(size, 0);
+					size[0] = 1;
+					pos[0][0] = p;
+				}
 				int maxj = 0;
 				byte[] s = Arrays.copyOf(this.s, this.s.length);
-				s[p] = NONE;
-
 				for (int j = 0; j < max - 1; ++j) {
-					for (byte k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
+					for (byte k = 0; k < size[j]; ++k) {
 						int np = pos[j][k], x = getX(np);
 						if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
 							pos[j + 1][size[j + 1]] = np + 2;
+							dir[j + 1][size[j + 1]] = 0;
 							prev[j + 1][size[j + 1]] = k;
 							s[np + 1] = NONE;
 							++size[j + 1];
 						}
 						if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
 							pos[j + 1][size[j + 1]] = np - 2;
+							dir[j + 1][size[j + 1]] = 2;
 							prev[j + 1][size[j + 1]] = k;
 							s[np - 1] = NONE;
 							++size[j + 1];
 						}
 						if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
 							pos[j + 1][size[j + 1]] = np + N2;
+							dir[j + 1][size[j + 1]] = 1;
 							prev[j + 1][size[j + 1]] = k;
 							s[np + N] = NONE;
 							++size[j + 1];
 						}
 						if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
 							pos[j + 1][size[j + 1]] = np - N2;
+							dir[j + 1][size[j + 1]] = 3;
 							prev[j + 1][size[j + 1]] = k;
 							s[np - N] = NONE;
 							++size[j + 1];
 						}
+						if (size[j + 1] > width - 5)
+							break;
 					}
 					if (size[j + 1] > 0)
 						maxj = j + 1;
-					else
-						break;
 				}
 				if (maxj > 0) {
 					Next next = new Next();
 					next.pos = pos[0][0];
 					s = Arrays.copyOf(this.s, this.s.length);
 					for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
-						int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
-						next.d.add(getDir(a - b));
-						int deletePos = (a + b) / 2;
+						next.d.add(dir[k][pre]);
+						int deletePos = (pos[k][pre] + pos[k - 1][prev[k][pre]]) / 2;
 						s[deletePos] = NONE;
 					}
-					s[pos[maxj][0]] = s[p];
-					s[p] = NONE;
+					s[pos[maxj][0]] = s[pos[0][0]];
+					s[pos[0][0]] = NONE;
 					res.add(new State(this, next, s, this.score + maxj));
 				}
 			}
@@ -187,10 +205,6 @@ public class CopyOfPegJumping {
 		}
 
 		void getScore(boolean[] white) {
-			final int max = Math.min(1000, NN / 2), width = 80;
-			int size[] = new int[max];
-			int pos[][] = new int[max][width];
-			byte prev[][] = new byte[max][width];
 			for (int i = 0; i < NN; ++i) {
 				if (!white[i] && s[i] > NONE) {
 					boolean ok = false;
@@ -198,76 +212,73 @@ public class CopyOfPegJumping {
 					ok |= getX(i) - 2 >= 0 && s[i - 1] != NONE && s[i - 2] == NONE;
 					ok |= i + N2 < NN && s[i + N] != NONE && s[i + N2] == NONE;
 					ok |= i - N2 >= 0 && s[i - N] != NONE && s[i - N2] == NONE;
-					if (!ok)
-						continue;
-
-					byte startCell = s[i];
-					s[i] = NONE;
-					Arrays.fill(size, 0);
-					size[0] = 1;
-					pos[0][0] = i;
-					int maxj = 0;
-					for (int j = 0; j < max - 1; ++j) {
-						for (byte k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
-							int np = pos[j][k], x = getX(np);
-							bad: if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if ((np + 1) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-										break bad;
-								pos[j + 1][size[j + 1]] = np + 2;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
-							}
-							bad: if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if ((np - 1) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-										break bad;
-								pos[j + 1][size[j + 1]] = np - 2;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
-							}
-							bad: if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if ((np + N) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-										break bad;
-								pos[j + 1][size[j + 1]] = np + N2;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
-							}
-							bad: if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if ((np - N) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-										break bad;
-								pos[j + 1][size[j + 1]] = np - N2;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
-							}
-						}
-						if (size[j + 1] > 0)
-							maxj = j + 1;
-						else
-							break;
-					}
-					if (maxj > 0) {
+					if (ok) {
+						List<Integer> path = new EulerPath().eulerPath(s, i);
 						Next next = new Next();
-						next.pos = pos[0][0];
-						byte[] s = Arrays.copyOf(this.s, this.s.length);
+						next.pos = i;
 						int score = 0;
-						for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
-							int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
-							next.d.add(getDir(a - b));
-							int deletePos = (a + b) / 2;
+						byte[] s = Arrays.copyOf(this.s, this.s.length);
+						for (int k = 0, size = path.size() - 1; k < size - 1; ++k) {
+							next.d.add(getDir(path.get(k + 1) - path.get(k)));
+							int deletePos = (path.get(k) + path.get(k + 1)) / 2;
 							score += s[deletePos];
 							s[deletePos] = NONE;
 						}
-						s[pos[maxj][0]] = startCell;
-						score *= maxj;
-						if (best.score < score)
+						s[path.get(0)] = s[i];
+						s[i] = NONE;
+						score *= path.size();
+						if (best.score < score) {
 							best = new State(this, next, s, this.score + score);
+						}
 					}
-					s[i] = startCell;
 				}
 			}
+		}
+	}
+
+	private class EulerPath {
+		void visit(byte[] s, int[][] adj, int p, List<Integer> path) {
+			int x = getX(p);
+			if (x + 2 < N && s[p + 1] != NONE && s[p + 2] == NONE && adj[p][p + 2] != 0) {
+				--adj[p][p + 2];
+				--adj[p + 2][p];
+				visit(s, adj, p + 2, path);
+			} else if (x - 2 >= 0 && s[p - 1] != NONE && s[p - 2] == NONE && adj[p][p - 2] != 0) {
+				--adj[p][p - 2];
+				--adj[p - 2][p];
+				visit(s, adj, p - 2, path);
+
+			} else if (p + N2 < NN && s[p + N] != NONE && s[p + N2] == NONE && adj[p][p + N2] != 0) {
+				--adj[p][p + N2];
+				--adj[p + N2][p];
+				visit(s, adj, p + N2, path);
+			} else if (p - N2 >= 0 && s[p - N] != NONE && s[p - N2] == NONE && adj[p][p - N2] != 0) {
+				--adj[p][p - N2];
+				--adj[p - N2][p];
+				visit(s, adj, p - N2, path);
+			}
+			path.add(p);
+		}
+
+		List<Integer> eulerPath(byte[] s, int p) {
+			byte tmp = s[p];
+			s[p] = NONE;
+			List<Integer> path = new ArrayList<>();
+			int adj[][] = new int[NN][NN];
+			for (int i = 0; i < s.length; ++i) {
+				int x = getX(i);
+				if (x + 2 < N && s[i + 1] != NONE && s[i + 2] == NONE)
+					++adj[i][i + 2];
+				if (x - 2 >= 0 && s[i - 1] != NONE && s[i - 2] == NONE)
+					++adj[i][i - 2];
+				if (i + N2 < NN && s[i + N] != NONE && s[i + N2] == NONE)
+					++adj[i][i + N2];
+				if (i - N2 >= 0 && s[i - N] != NONE && s[i - N2] == NONE)
+					++adj[i][i - N2];
+			}
+			visit(s, adj, p, path);
+			s[p] = tmp;
+			return path;
 		}
 	}
 
@@ -326,16 +337,5 @@ public class CopyOfPegJumping {
 	private static void debug(final Object... obj) {
 		if (DEBUG)
 			System.err.println(Arrays.deepToString(obj));
-	}
-
-	private byte getDir(int diff) {
-		if (diff == 2)
-			return 0;
-		if (diff == N2)
-			return 1;
-		if (diff == -2)
-			return 2;
-		// if (diff == -N2)
-		return 3;
 	}
 }

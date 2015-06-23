@@ -162,7 +162,7 @@ class TestCase {
 				if (nx >= 0 && nx < boardSize && ny >= 0 && ny < boardSize) {
 					if (board[ny][nx] == '.') {
 						System.err.println("ERROR: Can not jump over empty space.");
-						System.err.println(mv);
+						System.err.println(mv + " " + x + " " + y + " " + nx + " " + ny);
 						return false;
 					} else {
 						int nx2 = nx + dx;
@@ -170,6 +170,7 @@ class TestCase {
 						if (nx2 >= 0 && nx2 < boardSize && ny2 >= 0 && ny2 < boardSize) {
 							if (board[ny2][nx2] != '.') {
 								System.err.println("ERROR: Trying to jump onto another peg.");
+								System.err.println(mv + " " + x + " " + y + " " + nx2 + " " + ny2);
 								return false;
 							}
 							lastPeg[i + 1] = (board[ny][nx] - '0');
@@ -345,7 +346,7 @@ public class PegJumpVis {
 	public static boolean vis = true;
 	public static boolean debug = false;
 	public static int cellSize = 12;
-	public static int delay = 1000;
+	public static int delay = 200;
 	public static boolean startPaused = false;
 
 	public int runTest(long seed) {
@@ -452,7 +453,7 @@ public class PegJumpVis {
 		}
 		PegJumpVis.debug = false;
 		final ParameterClass sum0 = new ParameterClass(), sum1 = new ParameterClass();
-		ExecutorService es = Executors.newFixedThreadPool(6);
+		ExecutorService es = Executors.newFixedThreadPool(5);
 
 		for (int seed = 1, size = seed + 1000; seed < size; seed++) {
 			final int Seed = seed;
@@ -460,12 +461,12 @@ public class PegJumpVis {
 				try {
 					TestCase tc = new TestCase(Seed);
 					long start0 = System.currentTimeMillis();
-					String res0[] = new CopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard());
+					String res0[] = new CopyOfCopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard());
 					long end0 = System.currentTimeMillis();
 					int score0 = new PegJumpVis().setResult(tc, res0);
 					tc = new TestCase(Seed);
 					long start1 = System.currentTimeMillis();
-					String res1[] = new PegJumping().getMoves(tc.pegValue, tc.getBoard());
+					String res1[] = new CopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard());
 					long end1 = System.currentTimeMillis();
 					int score1 = new PegJumpVis().setResult(tc, res1);
 					int max = Math.max(score0, score1);
