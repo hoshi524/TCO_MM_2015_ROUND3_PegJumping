@@ -267,9 +267,59 @@ public class CopyOfPegJumping {
 						}
 						next[ns++] = i;
 						s[pos[maxj][0]] = startCell;
-						{
+						boolean keep = true;
+						while (keep) {
+							keep = false;
 							// 貪欲に延ばす
 							// まだまだパターンありそう
+							for (int k = 0; k < next.length; ++k) {
+								int p = next[k], tp1, tp2, tp3;
+								for (int q = 0; q < 4; ++q) {
+									if (q == 0) {
+										if (getX(p) + 2 >= N || getY(p) + 2 >= N)
+											continue;
+										tp1 = p + 2;
+										tp2 = p + 2 + N2;
+										tp3 = p + N2;
+									} else if (q == 1) {
+										if (getX(p) - 2 < 0 || getY(p) + 2 >= N)
+											continue;
+										tp1 = p - 2;
+										tp2 = p - 2 + N2;
+										tp3 = p + N2;
+									} else if (q == 2) {
+										if (getX(p) + 2 >= N || getY(p) - 2 < 0)
+											continue;
+										tp1 = p + 2;
+										tp2 = p + 2 - N2;
+										tp3 = p - N2;
+									} else {
+										if (getX(p) - 2 < 0 || getY(p) - 2 < 0)
+											continue;
+										tp1 = p - 2;
+										tp2 = p - 2 - N2;
+										tp3 = p - N2;
+									}
+									if (s[tp1] != NONE || s[tp2] != NONE || s[tp3] != NONE)
+										continue;
+									int d1 = (p + tp1) / 2;
+									int d2 = (tp1 + tp2) / 2;
+									int d3 = (tp2 + tp3) / 2;
+									int d4 = (tp3 + p) / 2;
+									if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE && s[d4] != NONE) {
+										int tmp[] = Arrays.copyOf(next, next.length + 4);
+										System.arraycopy(next, k, tmp, k + 4, next.length - k);
+										tmp[k + 1] = tp1;
+										tmp[k + 2] = tp2;
+										tmp[k + 3] = tp3;
+										tmp[k + 4] = p;
+										next = tmp;
+										s[d1] = s[d2] = s[d3] = s[d4] = NONE;
+										keep = true;
+										break;
+									}
+								}
+							}
 							for (int k = 0; k < next.length - 1; ++k) {
 								int p1 = next[k], p2 = next[k + 1], tp1, tp2;
 								for (int q = 0; q < 2; ++q) {
@@ -296,6 +346,8 @@ public class CopyOfPegJumping {
 										tmp[k + 2] = tp2;
 										next = tmp;
 										s[d1] = s[d2] = s[d3] = NONE;
+										// s[(p1 + p2) / 2] = 1;
+										keep = true;
 										break;
 									}
 								}
