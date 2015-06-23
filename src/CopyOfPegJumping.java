@@ -314,6 +314,7 @@ public class CopyOfPegJumping {
 										tmp[k + 3] = tp3;
 										tmp[k + 4] = p;
 										next = tmp;
+										score += s[d1] + s[d2] + s[d3] + s[d4];
 										s[d1] = s[d2] = s[d3] = s[d4] = NONE;
 										keep = true;
 										break;
