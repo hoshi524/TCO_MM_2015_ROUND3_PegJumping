@@ -125,49 +125,57 @@ public class CopyOfCopyOfPegJumping {
 			int pos[][] = new int[max][width];
 			byte prev[][] = new byte[max][width];
 			for (int i = 0; i < 20; ++i) {
-				int p = start.get(rnd.nextInt(start.size()));
-				if (used.contains(p))
+				int ip = start.get(rnd.nextInt(start.size()));
+				if (used.contains(ip))
 					continue;
-				used.add(p);
+				used.add(ip);
 				Arrays.fill(size, 0);
 				size[0] = 1;
-				pos[0][0] = p;
+				pos[0][0] = ip;
 				int maxj = 0;
-				byte startCell = s[p];
-				s[p] = NONE;
+				byte startCell = s[ip];
+				s[ip] = NONE;
 
 				for (int j = 0; j < max - 1; ++j) {
 					for (byte k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
-						int np = pos[j][k], x = getX(np);
-						bad: if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
+						int np = pos[j][k], x = getX(np), delp, nextp;
+						delp = np + 1;
+						nextp = np + 2;
+						bad: if (x + 2 < N && s[delp] != NONE && s[nextp] == NONE) {
 							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if ((np + 1) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
 									break bad;
-							pos[j + 1][size[j + 1]] = np + 2;
+							pos[j + 1][size[j + 1]] = nextp;
 							prev[j + 1][size[j + 1]] = k;
 							++size[j + 1];
 						}
-						bad: if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
+						delp = np - 1;
+						nextp = np - 2;
+						bad: if (x - 2 >= 0 && s[delp] != NONE && s[nextp] == NONE) {
 							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if ((np - 1) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
 									break bad;
-							pos[j + 1][size[j + 1]] = np - 2;
+							pos[j + 1][size[j + 1]] = nextp;
 							prev[j + 1][size[j + 1]] = k;
 							++size[j + 1];
 						}
-						bad: if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
+						delp = np + N;
+						nextp = np + N2;
+						bad: if (nextp < NN && s[delp] != NONE && s[nextp] == NONE) {
 							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if ((np + N) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
 									break bad;
-							pos[j + 1][size[j + 1]] = np + N2;
+							pos[j + 1][size[j + 1]] = nextp;
 							prev[j + 1][size[j + 1]] = k;
 							++size[j + 1];
 						}
-						bad: if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
+						delp = np - N;
+						nextp = np - N2;
+						bad: if (nextp >= 0 && s[delp] != NONE && s[nextp] == NONE) {
 							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if ((np - N) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
 									break bad;
-							pos[j + 1][size[j + 1]] = np - N2;
+							pos[j + 1][size[j + 1]] = nextp;
 							prev[j + 1][size[j + 1]] = k;
 							++size[j + 1];
 						}
@@ -188,12 +196,12 @@ public class CopyOfCopyOfPegJumping {
 						score += s[deletePos];
 						s[deletePos] = NONE;
 					}
-					next[ns++] = p;
+					next[ns++] = ip;
 					s[pos[maxj][0]] = startCell;
 					score *= maxj;
 					res.add(new State(this, next, s, this.score + score));
 				}
-				s[p] = startCell;
+				s[ip] = startCell;
 			}
 			return res;
 		}
