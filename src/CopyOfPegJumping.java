@@ -9,12 +9,11 @@ public class CopyOfPegJumping {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	private static final int NONE = -1;
 
 	private int N, NN, N2;
 	private State best;
-	private char[] dirc = { 'R', 'D', 'L', 'U' };
 	private XorShift rnd = new XorShift();
 
 	public String[] getMoves(int[] pegValue, String[] board) {
@@ -61,7 +60,7 @@ public class CopyOfPegJumping {
 			while (true) {
 				if (best.x == null)
 					break;
-				res.add(best.n.toString());
+				res.add(orderToString(best.n));
 				best = best.x;
 			}
 			Collections.reverse(res);
@@ -71,7 +70,7 @@ public class CopyOfPegJumping {
 
 	private class State {
 		State x;
-		Next n;
+		int[] n;
 		byte[] s;
 		int score;
 
@@ -94,7 +93,7 @@ public class CopyOfPegJumping {
 			}
 		}
 
-		State(State x, Next n, byte[] s, int score) {
+		State(State x, int[] n, byte[] s, int score) {
 			this.x = x;
 			this.n = n;
 			this.s = s;
@@ -169,15 +168,15 @@ public class CopyOfPegJumping {
 						break;
 				}
 				if (maxj > 0) {
-					Next next = new Next();
-					next.pos = pos[0][0];
+					int next[] = new int[maxj + 1], ns = 0;
 					s = Arrays.copyOf(this.s, this.s.length);
 					for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
 						int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
-						next.d.add(getDir(a - b));
+						next[ns++] = a;
 						int deletePos = (a + b) / 2;
 						s[deletePos] = NONE;
 					}
+					next[ns++] = p;
 					s[pos[maxj][0]] = s[p];
 					s[p] = NONE;
 					res.add(new State(this, next, s, this.score + maxj));
@@ -249,17 +248,17 @@ public class CopyOfPegJumping {
 							break;
 					}
 					if (maxj > 0) {
-						Next next = new Next();
-						next.pos = pos[0][0];
+						int next[] = new int[maxj + 1], ns = 0;
 						byte[] s = Arrays.copyOf(this.s, this.s.length);
 						int score = 0;
 						for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
 							int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
-							next.d.add(getDir(a - b));
+							next[ns++] = a;
 							int deletePos = (a + b) / 2;
 							score += s[deletePos];
 							s[deletePos] = NONE;
 						}
+						next[ns++] = i;
 						s[pos[maxj][0]] = startCell;
 						score *= maxj;
 						if (best.score < score)
@@ -268,20 +267,6 @@ public class CopyOfPegJumping {
 					s[i] = startCell;
 				}
 			}
-		}
-	}
-
-	private class Next {
-		int pos;
-		List<Byte> d = new ArrayList<>();
-
-		public String toString() {
-			Collections.reverse(d);
-			StringBuilder s = new StringBuilder();
-			s.append(getY(pos)).append(" ").append(getX(pos)).append(" ");
-			for (byte x : d)
-				s.append(dirc[x]);
-			return s.toString();
 		}
 	}
 
@@ -328,14 +313,24 @@ public class CopyOfPegJumping {
 			System.err.println(Arrays.deepToString(obj));
 	}
 
-	private byte getDir(int diff) {
+	private char getDir(int diff) {
 		if (diff == 2)
-			return 0;
+			return 'R';
 		if (diff == N2)
-			return 1;
+			return 'D';
 		if (diff == -2)
-			return 2;
+			return 'L';
 		// if (diff == -N2)
-		return 3;
+		return 'U';
+	}
+
+	private String orderToString(int[] order) {
+		int pos = order[order.length - 1];
+		StringBuilder s = new StringBuilder();
+		s.append(getY(pos)).append(" ").append(getX(pos)).append(" ");
+		for (int i = order.length - 1; i > 0; --i) {
+			s.append(getDir(order[i - 1] - order[i]));
+		}
+		return s.toString();
 	}
 }
