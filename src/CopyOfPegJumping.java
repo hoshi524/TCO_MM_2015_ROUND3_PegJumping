@@ -9,7 +9,7 @@ public class CopyOfPegJumping {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	private static final int NONE = -1;
 
 	private int N, NN, N2;
@@ -17,7 +17,7 @@ public class CopyOfPegJumping {
 	private char[] dirc = { 'R', 'D', 'L', 'U' };
 	private XorShift rnd = new XorShift();
 
-	String[] getMoves(int[] pegValue, String[] board) {
+	public String[] getMoves(int[] pegValue, String[] board) {
 		{// input
 			N = board.length;
 			NN = N * N;
@@ -40,15 +40,14 @@ public class CopyOfPegJumping {
 					}
 				}
 				while (true) {
-					if (System.currentTimeMillis() >= endTime)
-						break TIME;
 					List<State> next = new ArrayList<>();
 					Collections.sort(states, (o1, o2) -> o2.score - o1.score);
-					for (int i = 0, size = Math.min(states.size(), 20); i < size; ++i) {
-						State s = states.get(i);
-						if (best.score < s.score)
-							best = s;
-						next.addAll(s.next(isStart));
+					if (best.score < states.get(0).score)
+						best = states.get(0);
+					for (int i = 0, size = Math.min(states.size(), 15); i < size; ++i) {
+						if (System.currentTimeMillis() >= endTime)
+							break TIME;
+						next.addAll(states.get(i).next(isStart));
 					}
 					if (next.isEmpty())
 						break;
@@ -56,6 +55,7 @@ public class CopyOfPegJumping {
 				}
 			}
 			++w;
+			// break;
 		}
 
 		{// output
@@ -121,7 +121,7 @@ public class CopyOfPegJumping {
 				return res;
 
 			Set<Integer> used = new HashSet<>();
-			final int max = Math.min(1000, NN / 2), width = 40;
+			final int max = Math.min(1000, NN / 2), width = 30;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
 			byte dir[][] = new byte[max][width];
@@ -136,37 +136,44 @@ public class CopyOfPegJumping {
 					size[0] = 1;
 					pos[0][0] = p;
 				}
-				byte[] s = Arrays.copyOf(this.s, this.s.length);
 				int maxj = 0;
 				for (int j = 0; j < max - 1; ++j) {
 					for (byte k = 0; k < size[j]; ++k) {
 						int np = pos[j][k], x = getX(np);
-						if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
+						bad: if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
+							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+								if ((np + 1) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+									break bad;
 							pos[j + 1][size[j + 1]] = np + 2;
 							dir[j + 1][size[j + 1]] = 0;
 							prev[j + 1][size[j + 1]] = k;
-							s[np + 1] = NONE;
 							++size[j + 1];
 						}
-						if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
+						bad: if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
+							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+								if ((np - 1) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+									break bad;
 							pos[j + 1][size[j + 1]] = np - 2;
 							dir[j + 1][size[j + 1]] = 2;
 							prev[j + 1][size[j + 1]] = k;
-							s[np - 1] = NONE;
 							++size[j + 1];
 						}
-						if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
+						bad: if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
+							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+								if ((np + N) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+									break bad;
 							pos[j + 1][size[j + 1]] = np + N2;
 							dir[j + 1][size[j + 1]] = 1;
 							prev[j + 1][size[j + 1]] = k;
-							s[np + N] = NONE;
 							++size[j + 1];
 						}
-						if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
+						bad: if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
+							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+								if ((np - N) == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+									break bad;
 							pos[j + 1][size[j + 1]] = np - N2;
 							dir[j + 1][size[j + 1]] = 3;
 							prev[j + 1][size[j + 1]] = k;
-							s[np - N] = NONE;
 							++size[j + 1];
 						}
 						if (size[j + 1] > width - 5)
@@ -179,7 +186,7 @@ public class CopyOfPegJumping {
 					Next next = new Next();
 					next.pos = pos[0][0];
 					int score = 0;
-					s = Arrays.copyOf(this.s, this.s.length);
+					byte[] s = Arrays.copyOf(this.s, this.s.length);
 					for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
 						next.d.add(dir[k][pre]);
 						int deletePos = (pos[k][pre] + pos[k - 1][prev[k][pre]]) / 2;

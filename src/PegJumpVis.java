@@ -477,8 +477,9 @@ public class PegJumpVis {
 						sum0.timeover++;
 					if ((end1 - start1) >= 15000)
 						sum1.timeover++;
-					System.out.println(String.format("%6d : %6d    %5d : %5d    %.1f : %.1f   %d : %d", score0, score1,
-							(end0 - start0), (end1 - start1), sum0.d, sum1.d, sum0.timeover, sum1.timeover));
+					System.out.println(String.format("%3d   %7d : %7d    %5d : %5d    %.1f : %.1f   %d : %d", Seed,
+							score0, score1, (end0 - start0), (end1 - start1), sum0.d, sum1.d, sum0.timeover,
+							sum1.timeover));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
