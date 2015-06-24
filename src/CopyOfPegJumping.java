@@ -23,35 +23,39 @@ public class CopyOfPegJumping {
 			N2 = N * 2;
 			best = new State();
 		}
-		boolean white[] = new boolean[NN];
-		int w = 0;
-		TIME: while (true) {
-			List<State> states = new ArrayList<>();
-			states.add(new State(pegValue, board));
-			{// setWhite
-				for (int i = 0; i < N; ++i)
-					white[i] = (i + w) % 2 == 0;
-				for (int y = 1; y < N; ++y) {
-					for (int x = 0; x < N; ++x) {
-						white[getPos(y, x)] = !white[getPos(y - 1, x)];
-					}
+		boolean white[][] = new boolean[4][NN];
+		boolean black[][] = new boolean[4][NN];
+		for (int w = 0; w < 4; ++w) {
+			for (int i = 0; i < N; ++i)
+				white[w][i] = (i + w) % 2 == 0;
+			for (int y = 1; y < N; ++y) {
+				for (int x = 0; x < N; ++x) {
+					white[w][getPos(y, x)] = !white[w][getPos(y - 1, x)];
 				}
 			}
+			for (int y = (w <= 4 / 2 ? 0 : 1); y < N; y += 2) {
+				for (int x = 0; x < N; ++x) {
+					black[w][getPos(y, x)] = !white[w][getPos(y, x)];
+				}
+			}
+		}
+		TIME: for (int w = 0;; w = (w + 1) % 4) {
+			List<State> states = new ArrayList<>();
+			states.add(new State(pegValue, board));
 			while (true) {
 				List<State> next = new ArrayList<>();
 				Collections.sort(states, (o1, o2) -> o2.score - o1.score);
-				for (int i = 0, size = Math.min(states.size(), 10); i < size; ++i) {
-					next.addAll(states.get(i).center(white));
+				for (int i = 0, size = Math.min(states.size(), 2); i < size; ++i) {
+					next.addAll(states.get(i).center(white[w], black[w]));
 				}
 				if (next.isEmpty())
 					break;
 				states = next;
 			}
 			for (State s : states)
-				s.getScore(white);
+				s.getScore(black[w]);
 			if (System.currentTimeMillis() >= endTime)
 				break TIME;
-			++w;
 		}
 
 		{// output
@@ -99,7 +103,7 @@ public class CopyOfPegJumping {
 			this.score = score;
 		}
 
-		List<State> center(boolean[] white) {
+		List<State> center(boolean[] white, boolean[] black) {
 			List<State> res = new ArrayList<>();
 			List<Integer> start = new ArrayList<>();
 			for (int i = 0; i < NN; ++i) {
@@ -117,11 +121,11 @@ public class CopyOfPegJumping {
 				return res;
 
 			Set<Integer> used = new HashSet<>();
-			final int max = Math.min(1000, NN / 2), width = 20;
+			final int max = Math.min(1000, NN / 2), width = 5;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
 			byte prev[][] = new byte[max][width];
-			for (int i = 0; i < 20; ++i) {
+			for (int i = 0; i < 10; ++i) {
 				int p = start.get(rnd.nextInt(start.size()));
 				if (used.contains(p))
 					continue;
@@ -167,30 +171,32 @@ public class CopyOfPegJumping {
 						break;
 				}
 				if (maxj > 0) {
-					int next[] = new int[maxj + 1], ns = 0;
+					int next[] = new int[maxj + 1], ns = 0, score = 0;
 					s = Arrays.copyOf(this.s, this.s.length);
 					for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
 						int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
 						next[ns++] = a;
 						int deletePos = (a + b) / 2;
 						s[deletePos] = NONE;
+						if (black[deletePos])
+							++score;
 					}
 					next[ns++] = p;
 					s[pos[maxj][0]] = s[p];
 					s[p] = NONE;
-					res.add(new State(this, next, s, this.score + maxj));
+					res.add(new State(this, next, s, this.score + score));
 				}
 			}
 			return res;
 		}
 
-		void getScore(boolean[] white) {
+		void getScore(boolean[] black) {
 			final int max = Math.min(1000, NN / 2), width = 50;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
 			byte prev[][] = new byte[max][width];
 			for (int i = 0; i < NN; ++i) {
-				if (!white[i] && s[i] > NONE) {
+				if (black[i] && s[i] > NONE) {
 					boolean ok = false;
 					ok |= getX(i) + 2 < N && s[i + 1] != NONE && s[i + 2] == NONE;
 					ok |= getX(i) - 2 >= 0 && s[i - 1] != NONE && s[i - 2] == NONE;
@@ -347,7 +353,7 @@ public class CopyOfPegJumping {
 										tmp[k + 2] = tp2;
 										next = tmp;
 										s[d1] = s[d2] = s[d3] = NONE;
-										// s[(p1 + p2) / 2] = 1;
+										s[(p1 + p2) / 2] = 1;
 										keep = true;
 										break;
 									}

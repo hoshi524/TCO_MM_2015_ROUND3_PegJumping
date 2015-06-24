@@ -9,7 +9,7 @@ public class CopyOfCopyOfPegJumping {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	private static final int NONE = -1;
 
 	private int N, NN, N2;
@@ -23,38 +23,39 @@ public class CopyOfCopyOfPegJumping {
 			N2 = N * 2;
 			best = new State();
 		}
-		boolean isStart[] = new boolean[NN];
-		int w = 0;
-		TIME: while (true) {
-			List<State> states = new ArrayList<>();
-			states.add(new State(pegValue, board));
-			for (int q = 0; q < 2; ++q) {
-				{// setIsStart
-					for (int i = 0; i < N; ++i)
-						isStart[i] = (i + q + w) % 2 == 0;
-					for (int y = 1; y < N; ++y) {
-						for (int x = 0; x < N; ++x) {
-							isStart[getPos(y, x)] = !isStart[getPos(y - 1, x)];
-						}
-					}
-				}
-				while (true) {
-					List<State> next = new ArrayList<>();
-					Collections.sort(states, (o1, o2) -> o2.score - o1.score);
-					if (best.score < states.get(0).score)
-						best = states.get(0);
-					for (int i = 0, size = Math.min(states.size(), 15); i < size; ++i) {
-						if (System.currentTimeMillis() >= endTime)
-							break TIME;
-						next.addAll(states.get(i).next(isStart));
-					}
-					if (next.isEmpty())
-						break;
-					states = next;
+		boolean white[][] = new boolean[4][NN];
+		boolean black[][] = new boolean[4][NN];
+		for (int w = 0; w < 4; ++w) {
+			for (int i = 0; i < N; ++i)
+				white[w][i] = (i + w) % 2 == 0;
+			for (int y = 1; y < N; ++y) {
+				for (int x = 0; x < N; ++x) {
+					white[w][getPos(y, x)] = !white[w][getPos(y - 1, x)];
 				}
 			}
-			++w;
-			// break;
+			for (int y = (w <= 4 / 2 ? 0 : 1); y < N; y += 2) {
+				for (int x = 0; x < N; ++x) {
+					black[w][getPos(y, x)] = !white[w][getPos(y, x)];
+				}
+			}
+		}
+		TIME: for (int w = 0;; w = (w + 1) % 4) {
+			List<State> states = new ArrayList<>();
+			states.add(new State(pegValue, board));
+			while (true) {
+				List<State> next = new ArrayList<>();
+				Collections.sort(states, (o1, o2) -> o2.score - o1.score);
+				for (int i = 0, size = Math.min(states.size(), 2); i < size; ++i) {
+					next.addAll(states.get(i).center(white[w], black[w]));
+				}
+				if (next.isEmpty())
+					break;
+				states = next;
+			}
+			for (State s : states)
+				s.getScore(black[w]);
+			if (System.currentTimeMillis() >= endTime)
+				break TIME;
 		}
 
 		{// output
@@ -102,11 +103,11 @@ public class CopyOfCopyOfPegJumping {
 			this.score = score;
 		}
 
-		List<State> next(boolean[] isStart) {
+		List<State> center(boolean[] white, boolean[] black) {
 			List<State> res = new ArrayList<>();
 			List<Integer> start = new ArrayList<>();
 			for (int i = 0; i < NN; ++i) {
-				if (isStart[i] && s[i] > NONE) {
+				if (white[i] && s[i] > NONE) {
 					boolean ok = false;
 					ok |= getX(i) + 2 < N && s[i + 1] != NONE && s[i + 2] == NONE;
 					ok |= getX(i) - 2 >= 0 && s[i - 1] != NONE && s[i - 2] == NONE;
@@ -120,63 +121,47 @@ public class CopyOfCopyOfPegJumping {
 				return res;
 
 			Set<Integer> used = new HashSet<>();
-			final int max = Math.min(1000, NN / 2), width = 30;
+			final int max = Math.min(1000, NN / 2), width = 5;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
 			byte prev[][] = new byte[max][width];
-			for (int i = 0; i < 20; ++i) {
-				int ip = start.get(rnd.nextInt(start.size()));
-				if (used.contains(ip))
+			for (int i = 0; i < 10; ++i) {
+				int p = start.get(rnd.nextInt(start.size()));
+				if (used.contains(p))
 					continue;
-				used.add(ip);
+				used.add(p);
 				Arrays.fill(size, 0);
 				size[0] = 1;
-				pos[0][0] = ip;
+				pos[0][0] = p;
 				int maxj = 0;
-				byte startCell = s[ip];
-				s[ip] = NONE;
+				byte[] s = Arrays.copyOf(this.s, this.s.length);
+				s[p] = NONE;
 
 				for (int j = 0; j < max - 1; ++j) {
 					for (byte k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
-						int np = pos[j][k], x = getX(np), delp, nextp;
-						delp = np + 1;
-						nextp = np + 2;
-						bad: if (x + 2 < N && s[delp] != NONE && s[nextp] == NONE) {
-							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-									break bad;
-							pos[j + 1][size[j + 1]] = nextp;
+						int np = pos[j][k], x = getX(np);
+						if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
+							pos[j + 1][size[j + 1]] = np + 2;
 							prev[j + 1][size[j + 1]] = k;
+							s[np + 1] = NONE;
 							++size[j + 1];
 						}
-						delp = np - 1;
-						nextp = np - 2;
-						bad: if (x - 2 >= 0 && s[delp] != NONE && s[nextp] == NONE) {
-							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-									break bad;
-							pos[j + 1][size[j + 1]] = nextp;
+						if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
+							pos[j + 1][size[j + 1]] = np - 2;
 							prev[j + 1][size[j + 1]] = k;
+							s[np - 1] = NONE;
 							++size[j + 1];
 						}
-						delp = np + N;
-						nextp = np + N2;
-						bad: if (nextp < NN && s[delp] != NONE && s[nextp] == NONE) {
-							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-									break bad;
-							pos[j + 1][size[j + 1]] = nextp;
+						if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
+							pos[j + 1][size[j + 1]] = np + N2;
 							prev[j + 1][size[j + 1]] = k;
+							s[np + N] = NONE;
 							++size[j + 1];
 						}
-						delp = np - N;
-						nextp = np - N2;
-						bad: if (nextp >= 0 && s[delp] != NONE && s[nextp] == NONE) {
-							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-								if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
-									break bad;
-							pos[j + 1][size[j + 1]] = nextp;
+						if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
+							pos[j + 1][size[j + 1]] = np - N2;
 							prev[j + 1][size[j + 1]] = k;
+							s[np - N] = NONE;
 							++size[j + 1];
 						}
 					}
@@ -186,24 +171,202 @@ public class CopyOfCopyOfPegJumping {
 						break;
 				}
 				if (maxj > 0) {
-					int next[] = new int[maxj + 1], ns = 0;
-					int score = 0;
-					byte[] s = Arrays.copyOf(this.s, this.s.length);
+					int next[] = new int[maxj + 1], ns = 0, score = 0;
+					s = Arrays.copyOf(this.s, this.s.length);
 					for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
 						int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
 						next[ns++] = a;
 						int deletePos = (a + b) / 2;
-						score += s[deletePos];
 						s[deletePos] = NONE;
+						if (black[deletePos])
+							++score;
 					}
-					next[ns++] = ip;
-					s[pos[maxj][0]] = startCell;
-					score *= maxj;
+					next[ns++] = p;
+					s[pos[maxj][0]] = s[p];
+					s[p] = NONE;
 					res.add(new State(this, next, s, this.score + score));
 				}
-				s[ip] = startCell;
 			}
 			return res;
+		}
+
+		void getScore(boolean[] black) {
+			final int max = Math.min(1000, NN / 2), width = 50;
+			int size[] = new int[max];
+			int pos[][] = new int[max][width];
+			byte prev[][] = new byte[max][width];
+			for (int i = 0; i < NN; ++i) {
+				if (black[i] && s[i] > NONE) {
+					boolean ok = false;
+					ok |= getX(i) + 2 < N && s[i + 1] != NONE && s[i + 2] == NONE;
+					ok |= getX(i) - 2 >= 0 && s[i - 1] != NONE && s[i - 2] == NONE;
+					ok |= i + N2 < NN && s[i + N] != NONE && s[i + N2] == NONE;
+					ok |= i - N2 >= 0 && s[i - N] != NONE && s[i - N2] == NONE;
+					if (!ok)
+						continue;
+
+					byte startCell = s[i];
+					s[i] = NONE;
+					Arrays.fill(size, 0);
+					size[0] = 1;
+					pos[0][0] = i;
+					int maxj = 0;
+					for (int j = 0; j < max - 1; ++j) {
+						for (byte k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
+							int np = pos[j][k], x = getX(np), delp, nextp;
+							delp = np + 1;
+							nextp = np + 2;
+							bad: if (x + 2 < N && s[delp] != NONE && s[nextp] == NONE) {
+								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+									if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+										break bad;
+								pos[j + 1][size[j + 1]] = nextp;
+								prev[j + 1][size[j + 1]] = k;
+								++size[j + 1];
+							}
+							delp = np - 1;
+							nextp = np - 2;
+							bad: if (x - 2 >= 0 && s[delp] != NONE && s[nextp] == NONE) {
+								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+									if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+										break bad;
+								pos[j + 1][size[j + 1]] = nextp;
+								prev[j + 1][size[j + 1]] = k;
+								++size[j + 1];
+							}
+							delp = np + N;
+							nextp = np + N2;
+							bad: if (nextp < NN && s[delp] != NONE && s[nextp] == NONE) {
+								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+									if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+										break bad;
+								pos[j + 1][size[j + 1]] = nextp;
+								prev[j + 1][size[j + 1]] = k;
+								++size[j + 1];
+							}
+							delp = np - N;
+							nextp = np - N2;
+							bad: if (nextp >= 0 && s[delp] != NONE && s[nextp] == NONE) {
+								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
+									if (delp == ((pos[a][pre] + pos[a - 1][pre2]) / 2))
+										break bad;
+								pos[j + 1][size[j + 1]] = nextp;
+								prev[j + 1][size[j + 1]] = k;
+								++size[j + 1];
+							}
+						}
+						if (size[j + 1] > 0)
+							maxj = j + 1;
+						else
+							break;
+					}
+					if (maxj > 0) {
+						int next[] = new int[maxj + 1], ns = 0;
+						byte[] s = Arrays.copyOf(this.s, this.s.length);
+						int score = 0;
+						for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
+							int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
+							next[ns++] = a;
+							int deletePos = (a + b) / 2;
+							score += s[deletePos];
+							s[deletePos] = NONE;
+						}
+						next[ns++] = i;
+						s[pos[maxj][0]] = startCell;
+						boolean keep = true;
+						while (keep) {
+							keep = false;
+							// 貪欲に延ばす
+							// まだまだパターンありそう
+							for (int k = 0; k < next.length; ++k) {
+								int p = next[k], tp1, tp2, tp3;
+								for (int q = 0; q < 4; ++q) {
+									if (q == 0) {
+										if (getX(p) + 2 >= N || getY(p) + 2 >= N)
+											continue;
+										tp1 = p + 2;
+										tp2 = p + 2 + N2;
+										tp3 = p + N2;
+									} else if (q == 1) {
+										if (getX(p) - 2 < 0 || getY(p) + 2 >= N)
+											continue;
+										tp1 = p - 2;
+										tp2 = p - 2 + N2;
+										tp3 = p + N2;
+									} else if (q == 2) {
+										if (getX(p) + 2 >= N || getY(p) - 2 < 0)
+											continue;
+										tp1 = p + 2;
+										tp2 = p + 2 - N2;
+										tp3 = p - N2;
+									} else {
+										if (getX(p) - 2 < 0 || getY(p) - 2 < 0)
+											continue;
+										tp1 = p - 2;
+										tp2 = p - 2 - N2;
+										tp3 = p - N2;
+									}
+									if (s[tp1] != NONE || s[tp2] != NONE || s[tp3] != NONE)
+										continue;
+									int d1 = (p + tp1) / 2;
+									int d2 = (tp1 + tp2) / 2;
+									int d3 = (tp2 + tp3) / 2;
+									int d4 = (tp3 + p) / 2;
+									if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE && s[d4] != NONE) {
+										int tmp[] = Arrays.copyOf(next, next.length + 4);
+										System.arraycopy(next, k, tmp, k + 4, next.length - k);
+										tmp[k + 1] = tp1;
+										tmp[k + 2] = tp2;
+										tmp[k + 3] = tp3;
+										tmp[k + 4] = p;
+										next = tmp;
+										score += s[d1] + s[d2] + s[d3] + s[d4];
+										s[d1] = s[d2] = s[d3] = s[d4] = NONE;
+										keep = true;
+										break;
+									}
+								}
+							}
+							for (int k = 0; k < next.length - 1; ++k) {
+								int p1 = next[k], p2 = next[k + 1], tp1, tp2;
+								for (int q = 0; q < 2; ++q) {
+									if (Math.abs(p1 - p2) == 2) {
+										tp1 = p1 + (q == 0 ? N2 : -N2);
+										tp2 = p2 + (q == 0 ? N2 : -N2);
+										if ((q == 0 && tp1 >= NN) || (q != 0 && tp1 < 0))
+											continue;
+									} else {
+										tp1 = p1 + (q == 0 ? 2 : -2);
+										tp2 = p2 + (q == 0 ? 2 : -2);
+										if ((q == 0 && getX(p1) + 2 >= N) || (q != 0 && getX(p1) - 2 < 0))
+											continue;
+									}
+									if (s[tp1] != NONE || s[tp2] != NONE)
+										continue;
+									int d1 = (p1 + tp1) / 2;
+									int d2 = (tp1 + tp2) / 2;
+									int d3 = (tp2 + p2) / 2;
+									if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE) {
+										int tmp[] = Arrays.copyOf(next, next.length + 2);
+										System.arraycopy(next, k, tmp, k + 2, next.length - k);
+										tmp[k + 1] = tp1;
+										tmp[k + 2] = tp2;
+										next = tmp;
+										s[d1] = s[d2] = s[d3] = NONE;
+										s[(p1 + p2) / 2] = 1;
+										keep = true;
+										break;
+									}
+								}
+							}
+						}
+						score *= next.length - 1;
+						if (best.score < score)
+							best = new State(this, next, s, this.score + score);
+					}
+					s[i] = startCell;
+				}
+			}
 		}
 	}
 
