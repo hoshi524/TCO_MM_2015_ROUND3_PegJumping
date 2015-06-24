@@ -45,17 +45,18 @@ public class CopyOfPegJumping {
 			while (true) {
 				List<State> next = new ArrayList<>();
 				Collections.sort(states, (o1, o2) -> o2.score - o1.score);
-				for (int i = 0, size = Math.min(states.size(), 2); i < size; ++i) {
+				for (int i = 0, size = Math.min(states.size(), 1); i < size; ++i) {
 					next.addAll(states.get(i).center(white[w], black[w]));
 				}
 				if (next.isEmpty())
 					break;
 				states = next;
 			}
-			for (State s : states)
+			for (State s : states) {
 				s.getScore(black[w]);
-			if (System.currentTimeMillis() >= endTime)
-				break TIME;
+				if (System.currentTimeMillis() >= endTime)
+					break TIME;
+			}
 		}
 
 		{// output
@@ -193,10 +194,11 @@ public class CopyOfPegJumping {
 		}
 
 		void getScore(boolean[] black) {
-			final int max = Math.min(1000, NN >> 1), width = 50;
+			final int max = Math.min(1000, NN >> 1), width = 20, mask = (1 << 6) - 1;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
 			byte prev[][] = new byte[max][width];
+			long bit[] = new long[(NN >> 6) + 1];
 			for (int i = 0; i < NN; ++i) {
 				if (black[i] && s[i] != NONE && isStart(i, s)) {
 					byte startCell = s[i];
@@ -207,43 +209,42 @@ public class CopyOfPegJumping {
 					int maxj = 0;
 					for (int j = 0; j < max - 1; ++j) {
 						for (byte k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
+							if (!isStart(pos[j][k], s))
+								continue;
+							Arrays.fill(bit, 0);
+							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre]) {
+								int x = (pos[a][pre] + pos[a - 1][pre2]) >> 1;
+								bit[x >> 6] |= 1L << (x & mask);
+							}
 							int np = pos[j][k], x = getX(np), delp, nextp;
 							delp = np + 1;
 							nextp = np + 2;
-							bad: if (x + 2 < N && s[delp] != NONE && s[nextp] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if (delp << 1 == pos[a][pre] + pos[a - 1][pre2])
-										break bad;
+							if (x + 2 < N && s[delp] != NONE && s[nextp] == NONE
+									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
 								pos[j + 1][size[j + 1]] = nextp;
 								prev[j + 1][size[j + 1]] = k;
 								++size[j + 1];
 							}
 							delp = np - 1;
 							nextp = np - 2;
-							bad: if (x - 2 >= 0 && s[delp] != NONE && s[nextp] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if (delp << 1 == pos[a][pre] + pos[a - 1][pre2])
-										break bad;
+							if (x - 2 >= 0 && s[delp] != NONE && s[nextp] == NONE
+									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
 								pos[j + 1][size[j + 1]] = nextp;
 								prev[j + 1][size[j + 1]] = k;
 								++size[j + 1];
 							}
 							delp = np + N;
 							nextp = np + N2;
-							bad: if (nextp < NN && s[delp] != NONE && s[nextp] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if (delp << 1 == pos[a][pre] + pos[a - 1][pre2])
-										break bad;
+							if (nextp < NN && s[delp] != NONE && s[nextp] == NONE
+									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
 								pos[j + 1][size[j + 1]] = nextp;
 								prev[j + 1][size[j + 1]] = k;
 								++size[j + 1];
 							}
 							delp = np - N;
 							nextp = np - N2;
-							bad: if (nextp >= 0 && s[delp] != NONE && s[nextp] == NONE) {
-								for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre])
-									if (delp << 1 == pos[a][pre] + pos[a - 1][pre2])
-										break bad;
+							if (nextp >= 0 && s[delp] != NONE && s[nextp] == NONE
+									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
 								pos[j + 1][size[j + 1]] = nextp;
 								prev[j + 1][size[j + 1]] = k;
 								++size[j + 1];
