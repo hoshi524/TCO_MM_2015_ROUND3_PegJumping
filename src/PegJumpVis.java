@@ -428,12 +428,12 @@ public class PegJumpVis {
 			}
 
 		if (false) {
-			vis = false;
+			vis = true;
 			try {
-				for (long seed = 1; seed <= 1000; ++seed) {
+				for (long seed = 100; seed <= 1000; ++seed) {
 					TestCase tc = new TestCase(seed);
 					int score = new PegJumpVis().setResult(tc,
-							new CopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard()));
+							new CopyOfCopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard()));
 					System.out.println("Seed = " + seed + "   Score = " + score);
 				}
 			} catch (RuntimeException e) {
@@ -461,7 +461,7 @@ public class PegJumpVis {
 				try {
 					TestCase tc = new TestCase(Seed);
 					long start0 = System.currentTimeMillis();
-					String res0[] = new CopyOfCopyOfCopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard());
+					String res0[] = new CopyOfCopyOfCopyOfCopyOfPegJumping().getMoves(tc.pegValue, tc.getBoard());
 					long end0 = System.currentTimeMillis();
 					int score0 = new PegJumpVis().setResult(tc, res0);
 					tc = new TestCase(Seed);
