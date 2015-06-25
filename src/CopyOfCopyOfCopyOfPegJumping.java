@@ -5,12 +5,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class CopyOfPegJumping {
+public class CopyOfCopyOfCopyOfPegJumping {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
-	private static final boolean DEBUG = true;
-	private static final int NONE = -1;
+	private static final boolean DEBUG = false;
+	private static final byte NONE = 0;
 
 	private int N, NN, N2;
 	private State best;
@@ -39,15 +39,13 @@ public class CopyOfPegJumping {
 				}
 			}
 		}
-		//		long prev = System.currentTimeMillis();
-		//		debug("NN", NN);
 		TIME: for (int w = 0;; w = (w + 1) % 4) {
 			List<State> states = new ArrayList<>();
 			states.add(new State(pegValue, board));
 			while (true) {
 				List<State> next = new ArrayList<>();
 				Collections.sort(states, (o1, o2) -> o2.score - o1.score);
-				for (int i = 0, size = Math.min(states.size(), (3000 + NN - 1) / NN); i < size; ++i) {
+				for (int i = 0, size = Math.min(states.size(), 1); i < size; ++i) {
 					next.addAll(states.get(i).center(white[w], black[w]));
 				}
 				if (next.isEmpty())
@@ -59,10 +57,6 @@ public class CopyOfPegJumping {
 				if (System.currentTimeMillis() >= endTime)
 					break TIME;
 			}
-			//			long now = System.currentTimeMillis();
-			//			if ((now - prev) >= 100)
-			//				debug((now - prev));
-			//			prev = now;
 		}
 
 		{// output
@@ -96,9 +90,7 @@ public class CopyOfPegJumping {
 
 			for (int i = 0; i < NN; ++i) {
 				char c = board[getY(i)].charAt(getX(i));
-				if (c == '.')
-					s[i] = NONE;
-				else
+				if (c != '.')
 					s[i] = (byte) pegValue[c - '0'];
 			}
 		}
@@ -130,11 +122,11 @@ public class CopyOfPegJumping {
 				return res;
 
 			Set<Integer> used = new HashSet<>();
-			final int max = Math.min(1000, NN >> 2), width = (25000 + NN - 1) / NN;
+			final int max = NN >> 2, width = 5;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
-			int prev[][] = new int[max][width];
-			for (int i = 0; i < 20; ++i) {
+			byte prev[][] = new byte[max][width];
+			for (int i = 0; i < 10; ++i) {
 				int p = start.get(rnd.nextInt(start.size()));
 				if (used.contains(p))
 					continue;
@@ -146,37 +138,39 @@ public class CopyOfPegJumping {
 				byte[] s = Arrays.copyOf(this.s, this.s.length);
 				s[p] = NONE;
 
-				for (int j = 0; j < max - 1; ++j) {
-					for (int k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
+				for (int j = 0, sj = 0; j < max - 1; ++j) {
+					for (byte k = 0; sj + 4 <= width && k < size[j]; ++k) {
 						int np = pos[j][k], x = getX(np);
 						if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
-							pos[j + 1][size[j + 1]] = np + 2;
-							prev[j + 1][size[j + 1]] = k;
+							pos[j + 1][sj] = np + 2;
+							prev[j + 1][sj] = k;
 							s[np + 1] = NONE;
-							++size[j + 1];
+							++sj;
 						}
 						if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
-							pos[j + 1][size[j + 1]] = np - 2;
-							prev[j + 1][size[j + 1]] = k;
+							pos[j + 1][sj] = np - 2;
+							prev[j + 1][sj] = k;
 							s[np - 1] = NONE;
-							++size[j + 1];
+							++sj;
 						}
 						if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
-							pos[j + 1][size[j + 1]] = np + N2;
-							prev[j + 1][size[j + 1]] = k;
+							pos[j + 1][sj] = np + N2;
+							prev[j + 1][sj] = k;
 							s[np + N] = NONE;
-							++size[j + 1];
+							++sj;
 						}
 						if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
-							pos[j + 1][size[j + 1]] = np - N2;
-							prev[j + 1][size[j + 1]] = k;
+							pos[j + 1][sj] = np - N2;
+							prev[j + 1][sj] = k;
 							s[np - N] = NONE;
-							++size[j + 1];
+							++sj;
 						}
 					}
-					if (size[j + 1] > 0)
+					if (sj > 0) {
+						size[j + 1] = sj;
+						sj = 0;
 						maxj = j + 1;
-					else
+					} else
 						break;
 				}
 				if (maxj > 0) {
@@ -200,10 +194,10 @@ public class CopyOfPegJumping {
 		}
 
 		void getScore(boolean[] black) {
-			final int max = Math.min(1000, NN >> 2), width = (60000 + NN - 1) / NN, mask = (1 << 6) - 1;
+			final int max = NN >> 2, width = 20, mask = (1 << 6) - 1;
 			int size[] = new int[max];
-			int pos[][] = new int[max][width];
-			int prev[][] = new int[max][width];
+			int pos[][] = new int[max][width * 3];
+			int prev[][] = new int[max][width * 3];
 			long bit[] = new long[(NN >> 6) + 1];
 			for (int i = 0; i < NN; ++i) {
 				if (black[i] && s[i] != NONE && isStart(i, s)) {
@@ -213,8 +207,18 @@ public class CopyOfPegJumping {
 					size[0] = 1;
 					pos[0][0] = i;
 					int maxj = 0;
-					for (int j = 0,sj = 0; j < max - 1; ++j) {
-						for (int k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
+					for (int j = 0, sj = 0; j < max - 1; ++j) {
+						Set<Integer> used = new HashSet<Integer>();
+						for (int w = 0, wsize = Math.min(width, size[j]); w < wsize; ++w) {
+							int k;
+							if (wsize == size[j])
+								k = w;
+							else {
+								k = rnd.nextInt(size[j] - w);
+								while (used.contains(k))
+									k = (k + 1) % size[j];
+								used.add(k);
+							}
 							if (!isStart(pos[j][k], s))
 								continue;
 							Arrays.fill(bit, 0);
@@ -227,38 +231,40 @@ public class CopyOfPegJumping {
 							nextp = np + 2;
 							if (x + 2 < N && s[delp] != NONE && s[nextp] == NONE
 									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][size[j + 1]] = nextp;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
+								pos[j + 1][sj] = nextp;
+								prev[j + 1][sj] = k;
+								++sj;
 							}
 							delp = np - 1;
 							nextp = np - 2;
 							if (x - 2 >= 0 && s[delp] != NONE && s[nextp] == NONE
 									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][size[j + 1]] = nextp;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
+								pos[j + 1][sj] = nextp;
+								prev[j + 1][sj] = k;
+								++sj;
 							}
 							delp = np + N;
 							nextp = np + N2;
 							if (nextp < NN && s[delp] != NONE && s[nextp] == NONE
 									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][size[j + 1]] = nextp;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
+								pos[j + 1][sj] = nextp;
+								prev[j + 1][sj] = k;
+								++sj;
 							}
 							delp = np - N;
 							nextp = np - N2;
 							if (nextp >= 0 && s[delp] != NONE && s[nextp] == NONE
 									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][size[j + 1]] = nextp;
-								prev[j + 1][size[j + 1]] = k;
-								++size[j + 1];
+								pos[j + 1][sj] = nextp;
+								prev[j + 1][sj] = k;
+								++sj;
 							}
 						}
-						if (size[j + 1] > 0)
+						if (sj > 0) {
+							size[j + 1] = sj;
+							sj = 0;
 							maxj = j + 1;
-						else
+						} else
 							break;
 					}
 					for (int j = 0; j < size[maxj]; ++j) {
@@ -280,83 +286,85 @@ public class CopyOfPegJumping {
 							// 貪欲に延ばす
 							// まだまだパターンありそう
 							for (int k = 0; k < next.length; ++k) {
-								int p = next[k], px = getX(p), py = getY(p), tp1, tp2, tp3;
-								for (int q = 0; q < 4; ++q) {
-									if (q == 0) {
-										if (px + 2 >= N || py + 2 >= N)
+								{
+									int p = next[k], px = getX(p), py = getY(p), tp1, tp2, tp3;
+									for (int q = 0; q < 4; ++q) {
+										if (q == 0) {
+											if (px + 2 >= N || py + 2 >= N)
+												continue;
+											tp1 = p + 2;
+											tp2 = p + 2 + N2;
+											tp3 = p + N2;
+										} else if (q == 1) {
+											if (px - 2 < 0 || py + 2 >= N)
+												continue;
+											tp1 = p - 2;
+											tp2 = p - 2 + N2;
+											tp3 = p + N2;
+										} else if (q == 2) {
+											if (px + 2 >= N || py - 2 < 0)
+												continue;
+											tp1 = p + 2;
+											tp2 = p + 2 - N2;
+											tp3 = p - N2;
+										} else {
+											if (px - 2 < 0 || py - 2 < 0)
+												continue;
+											tp1 = p - 2;
+											tp2 = p - 2 - N2;
+											tp3 = p - N2;
+										}
+										if (s[tp1] != NONE || s[tp2] != NONE || s[tp3] != NONE)
 											continue;
-										tp1 = p + 2;
-										tp2 = p + 2 + N2;
-										tp3 = p + N2;
-									} else if (q == 1) {
-										if (px - 2 < 0 || py + 2 >= N)
-											continue;
-										tp1 = p - 2;
-										tp2 = p - 2 + N2;
-										tp3 = p + N2;
-									} else if (q == 2) {
-										if (px + 2 >= N || py - 2 < 0)
-											continue;
-										tp1 = p + 2;
-										tp2 = p + 2 - N2;
-										tp3 = p - N2;
-									} else {
-										if (px - 2 < 0 || py - 2 < 0)
-											continue;
-										tp1 = p - 2;
-										tp2 = p - 2 - N2;
-										tp3 = p - N2;
-									}
-									if (s[tp1] != NONE || s[tp2] != NONE || s[tp3] != NONE)
-										continue;
-									int d1 = (p + tp1) >> 1;
-									int d2 = (tp1 + tp2) >> 1;
-									int d3 = (tp2 + tp3) >> 1;
-									int d4 = (tp3 + p) >> 1;
-									if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE && s[d4] != NONE) {
-										int tmp[] = Arrays.copyOf(next, next.length + 4);
-										System.arraycopy(next, k, tmp, k + 4, next.length - k);
-										tmp[k + 1] = tp1;
-										tmp[k + 2] = tp2;
-										tmp[k + 3] = tp3;
-										tmp[k + 4] = p;
-										next = tmp;
-										score += s[d1] + s[d2] + s[d3] + s[d4];
-										s[d1] = s[d2] = s[d3] = s[d4] = NONE;
-										keep = true;
-										break;
+										int d1 = (p + tp1) >> 1;
+										int d2 = (tp1 + tp2) >> 1;
+										int d3 = (tp2 + tp3) >> 1;
+										int d4 = (tp3 + p) >> 1;
+										if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE && s[d4] != NONE) {
+											int tmp[] = Arrays.copyOf(next, next.length + 4);
+											System.arraycopy(next, k, tmp, k + 4, next.length - k);
+											tmp[k + 1] = tp1;
+											tmp[k + 2] = tp2;
+											tmp[k + 3] = tp3;
+											tmp[k + 4] = p;
+											next = tmp;
+											score += s[d1] + s[d2] + s[d3] + s[d4];
+											s[d1] = s[d2] = s[d3] = s[d4] = NONE;
+											keep = true;
+											break;
+										}
 									}
 								}
-							}
-							for (int k = 0; k < next.length - 1; ++k) {
-								int p1 = next[k], p2 = next[k + 1], tp1, tp2;
-								for (int q = 0; q < 2; ++q) {
-									if (Math.abs(p1 - p2) == 2) {
-										tp1 = p1 + (q == 0 ? N2 : -N2);
-										tp2 = p2 + (q == 0 ? N2 : -N2);
-										if ((q == 0 && tp1 >= NN) || (q != 0 && tp1 < 0))
+								if (k + 1 < next.length) {
+									int p1 = next[k], p2 = next[k + 1], tp1, tp2;
+									for (int q = 0; q < 2; ++q) {
+										if (Math.abs(p1 - p2) == 2) {
+											tp1 = p1 + (q == 0 ? N2 : -N2);
+											tp2 = p2 + (q == 0 ? N2 : -N2);
+											if ((q == 0 && tp1 >= NN) || (q != 0 && tp1 < 0))
+												continue;
+										} else {
+											tp1 = p1 + (q == 0 ? 2 : -2);
+											tp2 = p2 + (q == 0 ? 2 : -2);
+											if ((q == 0 && getX(p1) + 2 >= N) || (q != 0 && getX(p1) - 2 < 0))
+												continue;
+										}
+										if (s[tp1] != NONE || s[tp2] != NONE)
 											continue;
-									} else {
-										tp1 = p1 + (q == 0 ? 2 : -2);
-										tp2 = p2 + (q == 0 ? 2 : -2);
-										if ((q == 0 && getX(p1) + 2 >= N) || (q != 0 && getX(p1) - 2 < 0))
-											continue;
-									}
-									if (s[tp1] != NONE || s[tp2] != NONE)
-										continue;
-									int d1 = (p1 + tp1) >> 1;
-									int d2 = (tp1 + tp2) >> 1;
-									int d3 = (tp2 + p2) >> 1;
-									if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE) {
-										int tmp[] = Arrays.copyOf(next, next.length + 2);
-										System.arraycopy(next, k, tmp, k + 2, next.length - k);
-										tmp[k + 1] = tp1;
-										tmp[k + 2] = tp2;
-										next = tmp;
-										s[d1] = s[d2] = s[d3] = NONE;
-										s[(p1 + p2) >> 1] = 1;
-										keep = true;
-										break;
+										int d1 = (p1 + tp1) >> 1;
+										int d2 = (tp1 + tp2) >> 1;
+										int d3 = (tp2 + p2) >> 1;
+										if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE) {
+											int tmp[] = Arrays.copyOf(next, next.length + 2);
+											System.arraycopy(next, k, tmp, k + 2, next.length - k);
+											tmp[k + 1] = tp1;
+											tmp[k + 2] = tp2;
+											next = tmp;
+											s[d1] = s[d2] = s[d3] = NONE;
+											s[(p1 + p2) >> 1] = 1;
+											keep = true;
+											break;
+										}
 									}
 								}
 							}
