@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class CopyOfPegJumping {
+public class PegJumping1 {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
@@ -213,7 +213,7 @@ public class CopyOfPegJumping {
 					size[0] = 1;
 					pos[0][0] = i;
 					int maxj = 0;
-					for (int j = 0,sj = 0; j < max - 1; ++j) {
+					for (int j = 0, sj = 0; j < max - 1; ++j) {
 						for (int k = 0; size[j + 1] + 4 <= width && k < size[j]; ++k) {
 							if (!isStart(pos[j][k], s))
 								continue;
@@ -362,7 +362,7 @@ public class CopyOfPegJumping {
 							}
 						}
 						score *= next.length - 1;
-						if (best.score < score)
+						if (best.score < this.score + score)
 							best = new State(this, next, s, this.score + score);
 					}
 					s[i] = startCell;

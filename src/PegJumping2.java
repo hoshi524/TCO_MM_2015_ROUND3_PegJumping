@@ -1,9 +1,11 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public class CopyOfCopyOfCopyOfCopyOfPegJumping {
+public class PegJumping2 {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
@@ -12,9 +14,7 @@ public class CopyOfCopyOfCopyOfCopyOfPegJumping {
 
 	private int N, NN, N2;
 	private State best;
-	boolean white[][];
-	boolean black[][];
-	State[] type = new State[4];
+	private XorShift rnd = new XorShift();
 
 	public String[] getMoves(int[] pegValue, String[] board) {
 		{// input
@@ -23,8 +23,8 @@ public class CopyOfCopyOfCopyOfCopyOfPegJumping {
 			N2 = N * 2;
 			best = new State();
 		}
-		white = new boolean[4][NN];
-		black = new boolean[4][NN];
+		boolean white[][] = new boolean[4][NN];
+		boolean black[][] = new boolean[4][NN];
 		for (int w = 0; w < 4; ++w) {
 			for (int i = 0; i < N; ++i)
 				white[w][i] = (i + w) % 2 == 0;
@@ -39,14 +39,24 @@ public class CopyOfCopyOfCopyOfCopyOfPegJumping {
 				}
 			}
 		}
-		for (int i = 0; i < 4; ++i)
-			type[i] = new State(pegValue, board);
-		while (true) {
-			for (int i = 0; i < 4; ++i) {
-				get(i).getScore(black[i]);
+		TIME: for (int w = 0;; w = (w + 1) % 4) {
+			List<State> states = new ArrayList<>();
+			states.add(new State(pegValue, board));
+			while (true) {
+				List<State> next = new ArrayList<>();
+				Collections.sort(states, (o1, o2) -> o2.score - o1.score);
+				for (int i = 0, size = Math.min(states.size(), 1); i < size; ++i) {
+					next.addAll(states.get(i).center(white[w], black[w]));
+				}
+				if (next.isEmpty())
+					break;
+				states = next;
 			}
-			if (System.currentTimeMillis() >= endTime)
-				break;
+			for (State s : states) {
+				s.getScore(black[w]);
+				if (System.currentTimeMillis() >= endTime)
+					break TIME;
+			}
 		}
 
 		{// output
@@ -62,34 +72,11 @@ public class CopyOfCopyOfCopyOfCopyOfPegJumping {
 		}
 	}
 
-	State get(int i) {
-		if (type[i] == null)
-			return null;
-		State s = type[i];
-		while (true) {
-			List<State> child = s.child(white[i], black[i]);
-			if (child.isEmpty()) {
-				State res = s;
-				type[i] = s.x;
-				return res;
-			} else if (s.ci >= child.size()) {
-				s = s.x;
-				if (s == null) {
-					type[i] = null;
-					return null;
-				}
-			} else {
-				s = child.get(s.ci++);
-			}
-		}
-	}
-
 	private class State {
 		State x;
 		int[] n;
 		byte[] s;
-		int score, ci = 0;
-		List<State> child = null;
+		int score;
 
 		State() {
 			score = Integer.MIN_VALUE;
@@ -123,49 +110,87 @@ public class CopyOfCopyOfCopyOfCopyOfPegJumping {
 					|| (p - N2 >= 0 && s[p - N] != NONE && s[p - N2] == NONE);
 		}
 
-		List<State> child(boolean[] white, boolean[] black) {
-			if (child != null)
-				return child;
+		List<State> center(boolean[] white, boolean[] black) {
 			List<State> res = new ArrayList<>();
-			for (int p = 0; p < NN; ++p) {
-				if (white[p] && s[p] != NONE) {
-					int x = getX(p), np, dp;
-					np = p + 2;
-					dp = p + 1;
-					if (x + 2 < N && s[dp] != NONE && s[np] == NONE) {
-						byte[] s = Arrays.copyOf(this.s, this.s.length);
-						s[np] = s[p];
-						s[p] = s[dp] = NONE;
-						res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 1 : 0)));
-					}
-					np = p - 2;
-					dp = p - 1;
-					if (x - 2 >= 0 && s[dp] != NONE && s[np] == NONE) {
-						byte[] s = Arrays.copyOf(this.s, this.s.length);
-						s[np] = s[p];
-						s[p] = s[dp] = NONE;
-						res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 1 : 0)));
-					}
-					np = p + N2;
-					dp = p + N;
-					if (p + N2 < NN && s[dp] != NONE && s[np] == NONE) {
-						byte[] s = Arrays.copyOf(this.s, this.s.length);
-						s[np] = s[p];
-						s[p] = s[dp] = NONE;
-						res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 1 : 0)));
-					}
-					np = p - N2;
-					dp = p - N;
-					if (p - N2 >= 0 && s[dp] != NONE && s[np] == NONE) {
-						byte[] s = Arrays.copyOf(this.s, this.s.length);
-						s[np] = s[p];
-						s[p] = s[dp] = NONE;
-						res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 1 : 0)));
-					}
+			List<Integer> start = new ArrayList<>();
+			for (int i = 0; i < NN; ++i) {
+				if (white[i] && s[i] != NONE && isStart(i, s)) {
+					start.add(i);
 				}
 			}
-			Collections.sort(res, (o1, o2) -> o2.score - o1.score);
-			return child = res;
+			if (start.isEmpty())
+				return res;
+
+			Set<Integer> used = new HashSet<>();
+			final int max = NN >> 2, width = 5;
+			int size[] = new int[max];
+			int pos[][] = new int[max][width];
+			byte prev[][] = new byte[max][width];
+			for (int i = 0; i < 10; ++i) {
+				int p = start.get(rnd.nextInt(start.size()));
+				if (used.contains(p))
+					continue;
+				used.add(p);
+				Arrays.fill(size, 0);
+				size[0] = 1;
+				pos[0][0] = p;
+				int maxj = 0;
+				byte[] s = Arrays.copyOf(this.s, this.s.length);
+				s[p] = NONE;
+
+				for (int j = 0, sj = 0; j < max - 1; ++j) {
+					for (byte k = 0; sj + 4 <= width && k < size[j]; ++k) {
+						int np = pos[j][k], x = getX(np);
+						if (x + 2 < N && s[np + 1] != NONE && s[np + 2] == NONE) {
+							pos[j + 1][sj] = np + 2;
+							prev[j + 1][sj] = k;
+							s[np + 1] = NONE;
+							++sj;
+						}
+						if (x - 2 >= 0 && s[np - 1] != NONE && s[np - 2] == NONE) {
+							pos[j + 1][sj] = np - 2;
+							prev[j + 1][sj] = k;
+							s[np - 1] = NONE;
+							++sj;
+						}
+						if (np + N2 < NN && s[np + N] != NONE && s[np + N2] == NONE) {
+							pos[j + 1][sj] = np + N2;
+							prev[j + 1][sj] = k;
+							s[np + N] = NONE;
+							++sj;
+						}
+						if (np - N2 >= 0 && s[np - N] != NONE && s[np - N2] == NONE) {
+							pos[j + 1][sj] = np - N2;
+							prev[j + 1][sj] = k;
+							s[np - N] = NONE;
+							++sj;
+						}
+					}
+					if (sj > 0) {
+						size[j + 1] = sj;
+						sj = 0;
+						maxj = j + 1;
+					} else
+						break;
+				}
+				if (maxj > 0) {
+					int next[] = new int[maxj + 1], ns = 0, score = 0;
+					s = Arrays.copyOf(this.s, this.s.length);
+					for (int k = maxj, pre = 0; k > 0; pre = prev[k][pre], --k) {
+						int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
+						next[ns++] = a;
+						int deletePos = (a + b) >> 1;
+						s[deletePos] = NONE;
+						if (black[deletePos])
+							++score;
+					}
+					next[ns++] = p;
+					s[pos[maxj][0]] = s[p];
+					s[p] = NONE;
+					res.add(new State(this, next, s, this.score + score));
+				}
+			}
+			return res;
 		}
 
 		void getScore(boolean[] black) {
@@ -335,12 +360,29 @@ public class CopyOfCopyOfCopyOfCopyOfPegJumping {
 							}
 						}
 						score *= next.length - 1;
-						if (best.score < score)
+						if (best.score < this.score + score)
 							best = new State(this, next, s, this.score + score);
 					}
 					s[i] = startCell;
 				}
 			}
+		}
+	}
+
+	private final class XorShift {
+		int x = 123456789;
+		int y = 362436069;
+		int z = 521288629;
+		int w = 88675123;
+
+		int nextInt(int n) {
+			final int t = x ^ (x << 11);
+			x = y;
+			y = z;
+			z = w;
+			w = (w ^ (w >>> 19)) ^ (t ^ (t >>> 8));
+			final int r = w % n;
+			return r < 0 ? r + n : r;
 		}
 	}
 

@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class CopyOfCopyOfCopyOfPegJumping {
+public class PegJumping3 {
 
 	private static final int MAX_TIME = 14500;
 	private final long endTime = System.currentTimeMillis() + MAX_TIME;
@@ -370,7 +370,7 @@ public class CopyOfCopyOfCopyOfPegJumping {
 							}
 						}
 						score *= next.length - 1;
-						if (best.score < score)
+						if (best.score < this.score + score)
 							best = new State(this, next, s, this.score + score);
 					}
 					s[i] = startCell;
