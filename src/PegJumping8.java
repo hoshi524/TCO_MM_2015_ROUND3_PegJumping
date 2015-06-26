@@ -387,6 +387,7 @@ public class PegJumping8 {
 												tmp[k + 1] = tp1;
 												tmp[k + 2] = tp2;
 												next = tmp;
+												score += s[d1] + s[d2] + s[d3];
 												s[d1] = s[d2] = s[d3] = NONE;
 												s[(p1 + p2) >> 1] = 1;
 												keep = true;
