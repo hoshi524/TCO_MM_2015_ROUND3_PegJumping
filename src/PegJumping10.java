@@ -1,14 +1,11 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
 
-public class PegJumping2 {
+public class PegJumping10 {
 
 	private static final int MAX_TIME = 14500;
 	private static final boolean DEBUG = false;
@@ -18,12 +15,17 @@ public class PegJumping2 {
 	private int N, NN, N2;
 	private State best = new State();
 	private XorShift rnd = new XorShift();
+	private long hash[][];
 
 	public String[] getMoves(int[] pegValue, String[] board) {
 		{// input
 			N = board.length;
 			NN = N * N;
 			N2 = N * 2;
+			hash = new long[NN][11];
+			for (int i = 0; i < NN; ++i)
+				for (int j = 0; j < 11; ++j)
+					hash[i][j] = rnd.nextLong();
 		}
 		boolean white[][] = new boolean[4][NN];
 		boolean black[][] = new boolean[4][NN];
@@ -43,6 +45,7 @@ public class PegJumping2 {
 		}
 
 		State init = new State(pegValue, board);
+		int maxw = 0;
 		TIME: for (int w = 0;; w = (w + 1) % 4) {
 			List<State> states = new ArrayList<>();
 			states.add(init);
@@ -57,11 +60,21 @@ public class PegJumping2 {
 				states = next;
 			}
 			for (State s : states) {
-				s.getScore2(white[w], black[w]);
+				State tmp = s.getScore(black[w]);
+				if (best.score < tmp.score) {
+					best = tmp;
+					maxw = w;
+				}
 			}
 			if (System.currentTimeMillis() >= endTime)
 				break TIME;
 		}
+		//		while (true) {
+		//			State tmp = best.getScore(black[maxw]);
+		//			if (tmp.score == 0)
+		//				break;
+		//			best = tmp;
+		//		}
 
 		{// output
 			List<String> res = new ArrayList<>();
@@ -84,6 +97,13 @@ public class PegJumping2 {
 
 		State() {
 			score = 0;
+		}
+
+		long hash() {
+			long res = 0;
+			for (int i = 0; i < NN; ++i)
+				res ^= hash[i][s[i]];
+			return res;
 		}
 
 		State(int[] pegValue, String[] board) {
@@ -221,129 +241,8 @@ public class PegJumping2 {
 			return res;
 		}
 
-		void getScore2(boolean[] white, boolean[] black) {
-			int next[] = getLongPath(s, white, black);
-			byte[] s = Arrays.copyOf(this.s, this.s.length);
-			boolean ok[] = new boolean[NN];
-			Arrays.fill(ok, true);
-			int score = 0;
-			s[next[next.length - 1]] = s[next[0]];
-			for (int k = 0; k < next.length - 1; ++k) {
-				int a = next[k], b = next[k + 1];
-				int deletePos = delPos(a, b);
-				score += s[deletePos];
-				s[deletePos] = NONE;
-				ok[a] = ok[b] = ok[deletePos] = false;
-			}
-			boolean keep = true;
-			State parent = this;
-			while (keep) {
-				keep = false;
-				for (int k = 0; k < next.length; ++k) {
-					{
-						int p = next[k], px = getX(p), py = getY(p), tp1, tp2, tp3;
-						for (int q = 0; q < 4; ++q) {
-							if (q == 0) {
-								if (px + 2 >= N || py + 2 >= N)
-									continue;
-								tp1 = p + 2;
-								tp2 = p + 2 + N2;
-								tp3 = p + N2;
-							} else if (q == 1) {
-								if (px - 2 < 0 || py + 2 >= N)
-									continue;
-								tp1 = p - 2;
-								tp2 = p - 2 + N2;
-								tp3 = p + N2;
-							} else if (q == 2) {
-								if (px + 2 >= N || py - 2 < 0)
-									continue;
-								tp1 = p + 2;
-								tp2 = p + 2 - N2;
-								tp3 = p - N2;
-							} else {
-								if (px - 2 < 0 || py - 2 < 0)
-									continue;
-								tp1 = p - 2;
-								tp2 = p - 2 - N2;
-								tp3 = p - N2;
-							}
-							int d1 = delPos(p, tp1), d2 = delPos(tp1, tp2), d3 = delPos(tp2, tp3), d4 = delPos(tp3, p);
-							if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE && s[d4] != NONE) {
-								ok[d1] = ok[d2] = ok[d3] = ok[d4] = false;
-								if (!isOK(s, tp1, ok) || !isOK(s, tp2, ok) || !isOK(s, tp3, ok)) {
-									ok[d1] = ok[d2] = ok[d3] = ok[d4] = true;
-								} else {
-									if (s[tp1] != NONE)
-										parent = move(parent, s, tp1, ok);
-									if (s[tp2] != NONE)
-										parent = move(parent, s, tp2, ok);
-									if (s[tp3] != NONE)
-										parent = move(parent, s, tp3, ok);
-									ok[tp1] = ok[tp2] = ok[tp3] = false;
-									int tmp[] = Arrays.copyOf(next, next.length + 4);
-									System.arraycopy(next, k, tmp, k + 4, next.length - k);
-									tmp[k + 1] = tp1;
-									tmp[k + 2] = tp2;
-									tmp[k + 3] = tp3;
-									tmp[k + 4] = p;
-									next = tmp;
-									score += s[d1] + s[d2] + s[d3] + s[d4];
-									s[d1] = s[d2] = s[d3] = s[d4] = NONE;
-									keep = true;
-									break;
-								}
-							}
-						}
-					}
-					if (k + 1 < next.length) {
-						int p1 = next[k], p2 = next[k + 1], tp1, tp2;
-						for (int q = 0; q < 2; ++q) {
-							if (Math.abs(p1 - p2) == 2) {
-								tp1 = p1 + (q == 0 ? N2 : -N2);
-								tp2 = p2 + (q == 0 ? N2 : -N2);
-								if ((q == 0 && tp1 >= NN) || (q != 0 && tp1 < 0))
-									continue;
-							} else {
-								tp1 = p1 + (q == 0 ? 2 : -2);
-								tp2 = p2 + (q == 0 ? 2 : -2);
-								if ((q == 0 && getX(p1) + 2 >= N) || (q != 0 && getX(p1) - 2 < 0))
-									continue;
-							}
-							int d1 = delPos(p1, tp1), d2 = delPos(tp1, tp2), d3 = delPos(tp2, p2);
-							if (s[d1] != NONE && s[d2] != NONE && s[d3] != NONE) {
-								ok[d1] = ok[d2] = ok[d3] = false;
-								if (!isOK(s, tp1, ok) || !isOK(s, tp2, ok)) {
-									ok[d1] = ok[d2] = ok[d3] = true;
-								} else {
-									if (s[tp1] != NONE)
-										parent = move(parent, s, tp1, ok);
-									if (s[tp2] != NONE)
-										parent = move(parent, s, tp2, ok);
-									ok[tp1] = ok[tp2] = false;
-									int tmp[] = Arrays.copyOf(next, next.length + 2);
-									System.arraycopy(next, k, tmp, k + 2, next.length - k);
-									tmp[k + 1] = tp1;
-									tmp[k + 2] = tp2;
-									next = tmp;
-									score += s[d1] + s[d2] + s[d3];
-									s[d1] = s[d2] = s[d3] = NONE;
-									s[(p1 + p2) >> 1] = 1;
-									keep = true;
-									break;
-								}
-							}
-						}
-					}
-				}
-			}
-			score *= next.length - 1;
-			if (best.score < score) {
-				best = new State(parent, next, s, score);
-			}
-		}
-
-		void getScore(boolean[] black) {
+		State getScore(boolean[] black) {
+			State res = new State();
 			final int max = NN >> 2, width = 40, mask = (1 << 6) - 1;
 			int size[] = new int[max];
 			int pos[][] = new int[max][width];
@@ -533,13 +432,14 @@ public class PegJumping2 {
 							}
 						}
 						score *= next.length - 1;
-						if (best.score < score) {
-							best = new State(parent, next, s, score);
+						if (res.score < score) {
+							res = new State(parent, next, s, score);
 						}
 					}
 					s[i] = startCell;
 				}
 			}
+			return res;
 		}
 	}
 
@@ -557,6 +457,18 @@ public class PegJumping2 {
 			w = (w ^ (w >>> 19)) ^ (t ^ (t >>> 8));
 			final int r = w % n;
 			return r < 0 ? r + n : r;
+		}
+
+		int nextInt() {
+			final int t = x ^ (x << 11);
+			x = y;
+			y = z;
+			z = w;
+			return w = (w ^ (w >>> 19)) ^ (t ^ (t >>> 8));
+		}
+
+		long nextLong() {
+			return ((long) nextInt() << 32) | (long) nextInt();
 		}
 	}
 
@@ -601,230 +513,5 @@ public class PegJumping2 {
 
 	private static final int delPos(int p1, int p2) {
 		return (p1 + p2) >> 1;
-	}
-
-	private class MinCostFlow {
-		class edge {
-			int to, cap, cost, rev;
-
-			edge(int to, int cap, int cost, int rev) {
-				this.to = to;
-				this.cap = cap;
-				this.cost = cost;
-				this.rev = rev;
-			}
-		}
-
-		int V;
-		ArrayList<edge> G[];
-		int h[];
-		int dist[];
-		int prevv[], preve[];
-		int go[];
-
-		@SuppressWarnings("unchecked")
-		public MinCostFlow(int V) {
-			this.V = V;
-			G = new ArrayList[V];
-			for (int i = 0; i < V; i++)
-				G[i] = new ArrayList<edge>();
-			h = new int[V];
-			dist = new int[V];
-			prevv = new int[V];
-			preve = new int[V];
-			go = new int[V];
-		}
-
-		void add_edge(int from, int to, int cap, int cost) {
-			G[from].add(new edge(to, cap, cost, G[to].size()));
-			G[to].add(new edge(from, 0, -cost, G[from].size() - 1));
-		}
-
-		/*
-		 * 負の辺に対応できない・・・
-		 * よく考えよう
-		 */
-		int min_cost_flow(int s, int t, int f) {
-			final int max = Integer.MAX_VALUE >> 1;
-			class pair implements Comparable<pair> {
-				int dist, v;
-
-				pair(int dist, int v) {
-					this.dist = dist;
-					this.v = v;
-				}
-
-				@Override
-				public int compareTo(pair paramT) {
-					return dist - paramT.dist;
-				}
-			}
-			int res = 0;
-			Arrays.fill(h, 0);
-			Arrays.fill(go, -1);
-			while (f > 0) {
-				Arrays.fill(dist, max);
-				dist[s] = 0;
-				PriorityQueue<pair> queue = new PriorityQueue<pair>();
-				queue.add(new pair(0, s));
-				while (!queue.isEmpty()) {
-					pair p = queue.poll();
-					int v = p.v;
-					if (dist[v] < p.dist)
-						continue;
-					for (int i = 0; i < G[v].size(); i++) {
-						edge e = G[v].get(i);
-						if (e.cap == 0)
-							continue;
-						int d = dist[v] + e.cost + h[v] - h[e.to];
-						if (dist[e.to] > d) {
-							dist[e.to] = d;
-							prevv[e.to] = v;
-							preve[e.to] = i;
-							queue.add(new pair(d, e.to));
-						}
-					}
-				}
-				if (dist[t] == max)
-					return -1;
-				for (int v = 0; v < V; v++) {
-					h[v] += dist[v];
-				}
-				int d = f;
-				for (int v = t; v != s; v = prevv[v]) {
-					d = Math.min(d, G[prevv[v]].get(preve[v]).cap);
-				}
-				f -= d;
-				res += d * h[t];
-				for (int v = t; v != s; v = prevv[v]) {
-					edge e = G[prevv[v]].get(preve[v]);
-					go[prevv[v]] = v;
-					e.cap -= d;
-					G[v].get(e.rev).cap += d;
-				}
-			}
-			return res;
-		}
-	}
-
-	private final int[] getLongPath(final byte[] X, final boolean[] white, final boolean[] black) {
-		List<Integer> wlist = new ArrayList<>();
-		Map<Integer, Integer> to = new HashMap<>();
-		for (int i = 0; i < NN; ++i) {
-			if (X[i] != NONE && white[i]) {
-				to.put(i, wlist.size());
-				wlist.add(i);
-			}
-		}
-		int V = 2 + wlist.size() * 2, s = V - 2, t = V - 1;
-		MinCostFlow flow = new MinCostFlow(V);
-		for (int i = 0; i < wlist.size(); ++i) {
-			int p = wlist.get(i), x = getX(p), y = getY(p), outi = wlist.size() + 1;
-			flow.add_edge(i, outi, 1, 0);
-			flow.add_edge(outi, t, 1, 0);
-			if (x - 1 >= 0 && x + 1 < N && black[p + 1]) {
-				if ((X[p + 1] == NONE && X[p - 1] != NONE) || (X[p + 1] != NONE && X[p - 1] == NONE))
-					flow.add_edge(s, i, 1, 0);
-				if (X[p + 1] == NONE) {
-					int p1, p2;
-					p1 = p + 1 - N;
-					p2 = p + 1 - N2;
-					if (p2 >= 0 && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p + 1 + N;
-					p2 = p + 1 + N2;
-					if (p2 < NN && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p + 2;
-					p2 = p + 3;
-					if (x + 3 < N && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-				}
-				if (X[p - 1] == NONE) {
-					int p1, p2;
-					p1 = p - 1 - N;
-					p2 = p - 1 - N2;
-					if (p2 >= 0 && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p - 1 + N;
-					p2 = p - 1 + N2;
-					if (p2 < NN && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p - 2;
-					p2 = p - 3;
-					if (x - 3 >= 0 && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-				}
-			} else if (y - 1 >= 0 && y + 1 < N && black[p + N]) {
-				if ((X[p + N] == NONE && X[p - N] != NONE) || (X[p + N] != NONE && X[p - N] == NONE))
-					flow.add_edge(s, i, 1, 0);
-				if (X[p + N] == NONE) {
-					int p1, p2;
-					p1 = p + N - 1;
-					p2 = p + N - 2;
-					if (x - 2 >= 0 && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p + N + 1;
-					p2 = p + N + 2;
-					if (x + 2 < N && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p + N + N;
-					p2 = p + N + N2;
-					if (p2 < NN && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-				}
-				if (X[p - N] == NONE) {
-					int p1, p2;
-					p1 = p - N - 1;
-					p2 = p - N - 2;
-					if (x - 2 >= 0 && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p - N + 1;
-					p2 = p - N + 2;
-					if (x + 2 < N && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-					p1 = p - N - N;
-					p2 = p - N - N2;
-					if (p2 >= 0 && X[p1] != NONE && X[p2] == NONE) {
-						flow.add_edge(outi, to.get(p1), 1, -1);
-					}
-				}
-			}
-		}
-		System.out.println(1);
-		flow.min_cost_flow(s, t, 1);
-		List<Integer> tmp = new ArrayList<>();
-		System.out.println(2);
-		int now = flow.go[t];
-		while (now != s) {
-			if (now < wlist.size()) {
-				tmp.add(wlist.get(now));
-			}
-			now = flow.go[now];
-		}
-		System.out.println(3);
-		int res[] = new int[tmp.size() + 1];
-		for (int i = 0; i < tmp.size() - 1; ++i) {
-			int p1 = tmp.get(i), p2 = tmp.get(i + 1);
-			if (p1 + N < NN && black[p1 + N]) {
-				res[i] = p1 + (p1 < p2 ? N : -N);
-			} else {
-				res[i] = p1 + (p1 < p2 ? 1 : -1);
-			}
-		}
-		res[0] = tmp.get(0) + tmp.get(0) - res[1];
-		res[res.length - 1] = tmp.get(tmp.size() - 1) + tmp.get(tmp.size() - 1) + res[res.length - 2];
-		return res;
 	}
 }

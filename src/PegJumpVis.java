@@ -432,7 +432,7 @@ public class PegJumpVis {
 			try {
 				for (long seed = 1; seed <= 1000; ++seed) {
 					TestCase tc = new TestCase(seed);
-					int score = new PegJumpVis().setResult(tc, new PegJumping2().getMoves(tc.pegValue, tc.getBoard()));
+					int score = new PegJumpVis().setResult(tc, new PegJumping11().getMoves(tc.pegValue, tc.getBoard()));
 					System.out.println("Seed = " + seed + "   Score = " + score);
 				}
 			} catch (RuntimeException e) {
@@ -452,7 +452,7 @@ public class PegJumpVis {
 		}
 		PegJumpVis.debug = false;
 		final ParameterClass sum0 = new ParameterClass(), sum1 = new ParameterClass();
-		ExecutorService es = Executors.newFixedThreadPool(3);
+		ExecutorService es = Executors.newFixedThreadPool(5);
 
 		for (int seed = 1, size = seed + 1000; seed < size; seed++) {
 			final int Seed = seed;
@@ -460,7 +460,7 @@ public class PegJumpVis {
 				try {
 					TestCase tc = new TestCase(Seed);
 					long start0 = System.currentTimeMillis();
-					String res0[] = new PegJumping8().getMoves(tc.pegValue, tc.getBoard());
+					String res0[] = new PegJumping10().getMoves(tc.pegValue, tc.getBoard());
 					long end0 = System.currentTimeMillis();
 					int score0 = new PegJumpVis().setResult(tc, res0);
 					tc = new TestCase(Seed);
