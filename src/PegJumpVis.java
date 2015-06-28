@@ -427,12 +427,12 @@ public class PegJumpVis {
 				System.out.println("WARNING: unknown argument " + args[i] + ".");
 			}
 
-		if (false) {
+		if (true) {
 			vis = true;
 			try {
-				for (long seed = 8; seed <= 8; ++seed) {
+				for (long seed = 100; seed <= 1000; ++seed) {
 					TestCase tc = new TestCase(seed);
-					int score = new PegJumpVis().setResult(tc, new PegJumping12().getMoves(tc.pegValue, tc.getBoard()));
+					int score = new PegJumpVis().setResult(tc, new PegJumping14().getMoves(tc.pegValue, tc.getBoard()));
 					System.out.println("Seed = " + seed + "   Score = " + score);
 				}
 			} catch (RuntimeException e) {
@@ -460,12 +460,12 @@ public class PegJumpVis {
 				try {
 					TestCase tc = new TestCase(Seed);
 					long start0 = System.currentTimeMillis();
-					String res0[] = new PegJumping9().getMoves(tc.pegValue, tc.getBoard());
+					String res0[] = new PegJumping().getMoves(tc.pegValue, tc.getBoard());
 					long end0 = System.currentTimeMillis();
 					int score0 = new PegJumpVis().setResult(tc, res0);
 					tc = new TestCase(Seed);
 					long start1 = System.currentTimeMillis();
-					String res1[] = new PegJumping12().getMoves(tc.pegValue, tc.getBoard());
+					String res1[] = new PegJumping14().getMoves(tc.pegValue, tc.getBoard());
 					long end1 = System.currentTimeMillis();
 					int score1 = new PegJumpVis().setResult(tc, res1);
 					int max = Math.max(score0, score1);
