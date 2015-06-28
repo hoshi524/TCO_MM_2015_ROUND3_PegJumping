@@ -106,6 +106,16 @@ public class PegJumping11 {
 			return res;
 		}
 
+		void debug() {
+			for (int y = 0; y < N; ++y) {
+				for (int x = 0; x < N; ++x) {
+					System.out.print(s[getPos(y, x)]);
+				}
+				System.out.println();
+			}
+			System.out.println();
+		}
+
 		State(int[] pegValue, String[] board) {
 			x = null;
 			n = null;
@@ -295,7 +305,7 @@ public class PegJumping11 {
 							index[next[k]] = k;
 						while (keep) {
 							keep = false;
-							for (int k = 0; k < next.length; ++k) {
+							for (int k = 1; k < next.length - 1; ++k) {
 								int p = next[k];
 								queue[0] = p;
 								qs = 0;
@@ -307,128 +317,255 @@ public class PegJumping11 {
 									int x = getX(qp), np, dp;
 									np = qp + 2;
 									dp = qp + 1;
-									if (x + 2 < N && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1) {
+									if (x + 2 < N && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
+											&& greedPrev[qp] != np) {
 										greedPrev[np] = qp;
 										dist[np] = dist[qp] + 1;
-										if (index[np] == -1) {
-											queue[qe++] = np;
-										} else if (index[qp] == -1 && index[np] != -1
-												&& Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
+										if (index[np] != -1 && Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
 											int add = dist[np] - Math.abs(index[p] - index[np]);
 											int start = Math.min(index[p], index[np]);
 											for (int w = start, end = Math.max(index[p], index[np]) - 1; w < end; ++w) {
 												s[delPos(next[w], next[w + 1])] = 1;
-												index[next[w + 1]] = -1;
+												// System.err.println("delete : " + next[w + 1] + " " + (w + 1));
 											}
+											//											System.err.println(add + " " + index[p] + " " + index[np] + " " + dist[np]
+											//													+ " " + p + " " + np);
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
 											int tmp[] = Arrays.copyOf(next, next.length + add);
-											System.arraycopy(next, k, tmp, k + add, next.length - k);
-											int tp = np, nindex = start + add + 1;
-											while (tp != p) {
-												int prevp = greedPrev[tp];
-												s[delPos(tp, prevp)] = NONE;
-												index[tp] = nindex;
-												tmp[nindex] = tp;
-												--nindex;
-												tp = greedPrev[tp];
+											System.arraycopy(next, start, tmp, start + add, next.length - start);
+											//											for (int w = 0; w < tmp.length; ++w) {
+											//												System.err.print(tmp[w] + "," + index[tmp[w]] + "  ");
+											//											}
+											//											System.err.println();
+											if (index[p] < index[np]) {
+												for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
+											} else {
+												for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
 											}
 											next = tmp;
+											Arrays.fill(index, -1);
+											for (int w = 0; w < next.length; ++w)
+												index[next[w]] = w;
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
+											for (int w = 0; w < next.length; ++w) {
+												if (index[next[w]] == -1)
+													throw new RuntimeException();
+												if (w + 2 < next.length && next[w] == next[w + 2])
+													throw new RuntimeException();
+												if (w + 1 < next.length
+														&& (Math.abs(next[w] - next[w + 1]) != 2 && Math.abs(next[w]
+																- next[w + 1]) != N2))
+													throw new RuntimeException(next[w] + " " + next[w + 1]);
+											}
 											keep = true;
 											break;
 										}
+										queue[qe++] = np;
 									}
 									np = qp - 2;
 									dp = qp - 1;
-									if (x - 2 >= 0 && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1) {
+									if (x - 2 >= 0 && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
+											&& greedPrev[qp] != np) {
 										greedPrev[np] = qp;
 										dist[np] = dist[qp] + 1;
-										if (index[np] == -1) {
-											queue[qe++] = np;
-										} else if (index[qp] == -1 && index[np] != -1
-												&& Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
+										if (index[np] != -1 && Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
 											int add = dist[np] - Math.abs(index[p] - index[np]);
 											int start = Math.min(index[p], index[np]);
 											for (int w = start, end = Math.max(index[p], index[np]) - 1; w < end; ++w) {
 												s[delPos(next[w], next[w + 1])] = 1;
-												index[next[w + 1]] = -1;
+												// System.err.println("delete : " + next[w + 1] + " " + (w + 1));
 											}
+											//											System.err.println(add + " " + index[p] + " " + index[np] + " " + dist[np]
+											//													+ " " + p + " " + np);
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
 											int tmp[] = Arrays.copyOf(next, next.length + add);
-											System.arraycopy(next, k, tmp, k + add, next.length - k);
-											int tp = np, nindex = start + add + 1;
-											while (tp != p) {
-												int prevp = greedPrev[tp];
-												s[delPos(tp, prevp)] = NONE;
-												index[tp] = nindex;
-												tmp[nindex] = tp;
-												--nindex;
-												tp = greedPrev[tp];
+											System.arraycopy(next, start, tmp, start + add, next.length - start);
+											//											for (int w = 0; w < tmp.length; ++w) {
+											//												System.err.print(tmp[w] + "," + index[tmp[w]] + "  ");
+											//											}
+											//											System.err.println();
+											if (index[p] < index[np]) {
+												for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
+											} else {
+												for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
 											}
 											next = tmp;
+											Arrays.fill(index, -1);
+											for (int w = 0; w < next.length; ++w)
+												index[next[w]] = w;
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
+											for (int w = 0; w < next.length; ++w) {
+												if (index[next[w]] == -1)
+													throw new RuntimeException();
+												if (w + 2 < next.length && next[w] == next[w + 2])
+													throw new RuntimeException();
+												if (w + 1 < next.length
+														&& (Math.abs(next[w] - next[w + 1]) != 2 && Math.abs(next[w]
+																- next[w + 1]) != N2))
+													throw new RuntimeException(next[w] + " " + next[w + 1]);
+											}
 											keep = true;
 											break;
 										}
+										queue[qe++] = np;
 									}
 									np = qp + N2;
 									dp = qp + N;
-									if (np < NN && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1) {
+									if (np < NN && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
+											&& greedPrev[qp] != np) {
 										greedPrev[np] = qp;
 										dist[np] = dist[qp] + 1;
-										if (index[np] == -1) {
-											queue[qe++] = np;
-										} else if (index[qp] == -1 && index[np] != -1
-												&& Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
+										if (index[np] != -1 && Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
 											int add = dist[np] - Math.abs(index[p] - index[np]);
 											int start = Math.min(index[p], index[np]);
 											for (int w = start, end = Math.max(index[p], index[np]) - 1; w < end; ++w) {
 												s[delPos(next[w], next[w + 1])] = 1;
-												index[next[w + 1]] = -1;
+												// System.err.println("delete : " + next[w + 1] + " " + (w + 1));
 											}
+											//											System.err.println(add + " " + index[p] + " " + index[np] + " " + dist[np]
+											//													+ " " + p + " " + np);
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
 											int tmp[] = Arrays.copyOf(next, next.length + add);
-											System.arraycopy(next, k, tmp, k + add, next.length - k);
-											int tp = np, nindex = start + add + 1;
-											while (tp != p) {
-												int prevp = greedPrev[tp];
-												s[delPos(tp, prevp)] = NONE;
-												index[tp] = nindex;
-												tmp[nindex] = tp;
-												--nindex;
-												tp = greedPrev[tp];
+											System.arraycopy(next, start, tmp, start + add, next.length - start);
+											//											for (int w = 0; w < tmp.length; ++w) {
+											//												System.err.print(tmp[w] + "," + index[tmp[w]] + "  ");
+											//											}
+											//											System.err.println();
+											if (index[p] < index[np]) {
+												for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
+											} else {
+												for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
 											}
 											next = tmp;
+											Arrays.fill(index, -1);
+											for (int w = 0; w < next.length; ++w)
+												index[next[w]] = w;
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
+											for (int w = 0; w < next.length; ++w) {
+												if (index[next[w]] == -1)
+													throw new RuntimeException();
+												if (w + 2 < next.length && next[w] == next[w + 2])
+													throw new RuntimeException();
+												if (w + 1 < next.length
+														&& (Math.abs(next[w] - next[w + 1]) != 2 && Math.abs(next[w]
+																- next[w + 1]) != N2))
+													throw new RuntimeException(next[w] + " " + next[w + 1]);
+											}
 											keep = true;
 											break;
 										}
+										queue[qe++] = np;
 									}
 									np = qp - N2;
 									dp = qp - N;
-									if (np >= 0 && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1) {
+									if (np >= 0 && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
+											&& greedPrev[qp] != np) {
 										greedPrev[np] = qp;
 										dist[np] = dist[qp] + 1;
-										if (index[np] == -1) {
-											queue[qe++] = np;
-										} else if (index[qp] == -1 && index[np] != -1
-												&& Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
+										if (index[np] != -1 && Math.max(2, Math.abs(index[p] - index[np])) < dist[np]) {
 											int add = dist[np] - Math.abs(index[p] - index[np]);
 											int start = Math.min(index[p], index[np]);
-											System.err.println(index[p] + " " + index[np]);
 											for (int w = start, end = Math.max(index[p], index[np]) - 1; w < end; ++w) {
 												s[delPos(next[w], next[w + 1])] = 1;
-												index[next[w + 1]] = -1;
+												// System.err.println("delete : " + next[w + 1] + " " + (w + 1));
 											}
+											//											System.err.println(add + " " + index[p] + " " + index[np] + " " + dist[np]
+											//													+ " " + p + " " + np);
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
 											int tmp[] = Arrays.copyOf(next, next.length + add);
-											System.arraycopy(next, k, tmp, k + add, next.length - k);
-											int tp = np, nindex = start + add + 1;
-											while (tp != p) {
-												int prevp = greedPrev[tp];
-												s[delPos(tp, prevp)] = NONE;
-												index[tp] = nindex;
-												tmp[nindex] = tp;
-												--nindex;
-												tp = greedPrev[tp];
+											System.arraycopy(next, start, tmp, start + add, next.length - start);
+											//											for (int w = 0; w < tmp.length; ++w) {
+											//												System.err.print(tmp[w] + "," + index[tmp[w]] + "  ");
+											//											}
+											//											System.err.println();
+											if (index[p] < index[np]) {
+												for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
+											} else {
+												for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
+													int prevp = greedPrev[tp];
+													s[delPos(tp, prevp)] = NONE;
+													tmp[start + nindex] = tp;
+													tp = prevp;
+												}
 											}
 											next = tmp;
+											Arrays.fill(index, -1);
+											for (int w = 0; w < next.length; ++w)
+												index[next[w]] = w;
+											//											for (int w = 0; w < next.length; ++w) {
+											//												System.err.print(next[w] + "," + index[next[w]] + "  ");
+											//											}
+											//											System.err.println();
+											for (int w = 0; w < next.length; ++w) {
+												if (index[next[w]] == -1)
+													throw new RuntimeException();
+												if (w + 2 < next.length && next[w] == next[w + 2])
+													throw new RuntimeException();
+												if (w + 1 < next.length
+														&& (Math.abs(next[w] - next[w + 1]) != 2 && Math.abs(next[w]
+																- next[w + 1]) != N2))
+													throw new RuntimeException(next[w] + " " + next[w + 1]);
+											}
 											keep = true;
 											break;
 										}
+										queue[qe++] = np;
 									}
 								}
 							}

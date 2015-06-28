@@ -427,10 +427,10 @@ public class PegJumpVis {
 				System.out.println("WARNING: unknown argument " + args[i] + ".");
 			}
 
-		if (true) {
+		if (false) {
 			vis = true;
 			try {
-				for (long seed = 1; seed <= 1000; ++seed) {
+				for (long seed = 1; seed <= 1; ++seed) {
 					TestCase tc = new TestCase(seed);
 					int score = new PegJumpVis().setResult(tc, new PegJumping11().getMoves(tc.pegValue, tc.getBoard()));
 					System.out.println("Seed = " + seed + "   Score = " + score);
@@ -460,7 +460,7 @@ public class PegJumpVis {
 				try {
 					TestCase tc = new TestCase(Seed);
 					long start0 = System.currentTimeMillis();
-					String res0[] = new PegJumping10().getMoves(tc.pegValue, tc.getBoard());
+					String res0[] = new PegJumping11().getMoves(tc.pegValue, tc.getBoard());
 					long end0 = System.currentTimeMillis();
 					int score0 = new PegJumpVis().setResult(tc, res0);
 					tc = new TestCase(Seed);
