@@ -3,7 +3,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class PegJumping15 {
+public class PegJumping16 {
 
 	private static final int MAX_TIME = 14500;
 	private static final boolean DEBUG = false;
@@ -212,85 +212,53 @@ public class PegJumping15 {
 
 		State getScore(boolean[] black) {
 			State res = new State();
-			final int max = NN >> 2, width = 10, mask = (1 << 6) - 1;
-			int size[] = new int[max], dist[] = new int[NN];
-			int pos[][] = new int[max][width], prev[][] = new int[max][width];
-			int index[] = new int[NN], queue[] = new int[max], greedPrev[] = new int[NN];
-			long bit[] = new long[(NN >> 6) + 1];
+			final int max = NN >> 1;
+			int dist[] = new int[NN], index[] = new int[NN], queue[] = new int[max], prev[] = new int[NN];
 			for (int i = 0; i < NN; ++i) {
 				if (black[i] && s[i] != NONE && isStart(i, s)) {
-					byte startCell = s[i];
-					s[i] = NONE;
-					Arrays.fill(size, 0);
-					size[0] = 1;
-					pos[0][0] = i;
-					int maxj = 0;
-					for (int j = 0, sj = 0; j < max - 1; ++j) {
-						int wsize = Math.min(width, size[j]);
-						boolean used[] = new boolean[wsize];
-						for (int w = 0; sj + 4 <= width && w < wsize; ++w) {
-							int k = rnd.nextInt(size[j]);
-							while (used[k])
-								k = (k + 1) % size[j];
-							used[k] = true;
-							if (!isStart(pos[j][k], s))
-								continue;
-							Arrays.fill(bit, 0);
-							for (int a = j, pre = k, pre2 = prev[a][pre]; a > 0; pre = pre2, --a, pre2 = prev[a][pre]) {
-								int x = delPos(pos[a][pre], pos[a - 1][pre2]);
-								bit[x >> 6] |= 1L << (x & mask);
-							}
-							int np = pos[j][k], x = getX(np), delp, nextp;
-							delp = np + 1;
-							nextp = np + 2;
-							if (x + 2 < N && s[delp] != NONE && s[nextp] == NONE
-									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][sj] = nextp;
-								prev[j + 1][sj] = k;
-								++sj;
-							}
-							delp = np - 1;
-							nextp = np - 2;
-							if (x - 2 >= 0 && s[delp] != NONE && s[nextp] == NONE
-									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][sj] = nextp;
-								prev[j + 1][sj] = k;
-								++sj;
-							}
-							delp = np + N;
-							nextp = np + N2;
-							if (nextp < NN && s[delp] != NONE && s[nextp] == NONE
-									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][sj] = nextp;
-								prev[j + 1][sj] = k;
-								++sj;
-							}
-							delp = np - N;
-							nextp = np - N2;
-							if (nextp >= 0 && s[delp] != NONE && s[nextp] == NONE
-									&& (bit[delp >> 6] & (1L << (delp & mask))) == 0L) {
-								pos[j + 1][sj] = nextp;
-								prev[j + 1][sj] = k;
-								++sj;
-							}
-						}
-						if (sj > 0) {
-							size[j + 1] = sj;
-							sj = 0;
-							maxj = j + 1;
-						} else
-							break;
-					}
-					for (int j = 0; j < size[maxj]; ++j) {
-						int next[] = new int[maxj + 1], ns = 0;
+					for (int q = 0; q < 20; ++q) {
 						byte[] s = Arrays.copyOf(this.s, this.s.length);
-						for (int k = maxj, pre = j; k > 0; pre = prev[k][pre], --k) {
-							int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
-							next[ns++] = a;
-							int deletePos = delPos(a, b);
-							s[deletePos] = NONE;
+						int next[];
+						byte startCell = s[i];
+						{
+							List<Integer> nextList = new ArrayList<>();
+							s[i] = NONE;
+							List<Integer> tmp = new ArrayList<>();
+							nextList.add(i);
+							int p = i;
+							while (true) {
+								tmp.clear();
+								int x = getX(p), np, dp;
+								np = p + 2;
+								dp = p + 1;
+								if (x + 2 < N && s[dp] != NONE && s[np] == NONE) {
+									tmp.add(np);
+								}
+								np = p - 2;
+								dp = p - 1;
+								if (x - 2 >= 0 && s[dp] != NONE && s[np] == NONE) {
+									tmp.add(np);
+								}
+								np = p + N2;
+								dp = p + N;
+								if (p + N2 < NN && s[dp] != NONE && s[np] == NONE) {
+									tmp.add(np);
+								}
+								np = p - N2;
+								dp = p - N;
+								if (p - N2 >= 0 && s[dp] != NONE && s[np] == NONE) {
+									tmp.add(np);
+								}
+								if (tmp.isEmpty())
+									break;
+								np = tmp.get(rnd.nextInt(tmp.size()));
+								nextList.add(np);
+								s[delPos(p, np)] = NONE;
+								p = np;
+							}
+							Collections.reverse(nextList);
+							next = to(nextList);
 						}
-						next[ns++] = i;
 						boolean keep = true;
 						Arrays.fill(index, -1);
 						for (int k = 0; k < next.length; ++k)
@@ -300,8 +268,8 @@ public class PegJumping15 {
 							for (int k = 1; k < next.length - 1; ++k) {
 								class Inner {
 									int[] func(int next[], int p, int initp) {
-										Arrays.fill(greedPrev, -1);
-										greedPrev[initp] = p;
+										Arrays.fill(prev, -1);
+										prev[initp] = p;
 										dist[initp] = 1;
 										queue[0] = initp;
 										int qs = 0, qe = 1;
@@ -310,9 +278,9 @@ public class PegJumping15 {
 											int x = getX(qp), np, dp;
 											np = qp + 2;
 											dp = qp + 1;
-											if (x + 2 < N && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
-													&& greedPrev[qp] != np) {
-												greedPrev[np] = qp;
+											if (x + 2 < N && s[dp] != NONE && s[np] == NONE && prev[np] == -1
+													&& prev[qp] != np) {
+												prev[np] = qp;
 												dist[np] = dist[qp] + 1;
 												if (index[np] != -1 && Math.abs(index[p] - index[np]) < dist[np]) {
 													int add = dist[np] - Math.abs(index[p] - index[np]);
@@ -324,14 +292,14 @@ public class PegJumping15 {
 													System.arraycopy(next, start, tmp, start + add, next.length - start);
 													if (index[p] < index[np]) {
 														for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
 														}
 													} else {
 														for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
@@ -346,9 +314,9 @@ public class PegJumping15 {
 											}
 											np = qp - 2;
 											dp = qp - 1;
-											if (x - 2 >= 0 && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
-													&& greedPrev[qp] != np) {
-												greedPrev[np] = qp;
+											if (x - 2 >= 0 && s[dp] != NONE && s[np] == NONE && prev[np] == -1
+													&& prev[qp] != np) {
+												prev[np] = qp;
 												dist[np] = dist[qp] + 1;
 												if (index[np] != -1 && Math.abs(index[p] - index[np]) < dist[np]) {
 													int add = dist[np] - Math.abs(index[p] - index[np]);
@@ -360,14 +328,14 @@ public class PegJumping15 {
 													System.arraycopy(next, start, tmp, start + add, next.length - start);
 													if (index[p] < index[np]) {
 														for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
 														}
 													} else {
 														for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
@@ -382,9 +350,9 @@ public class PegJumping15 {
 											}
 											np = qp + N2;
 											dp = qp + N;
-											if (np < NN && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
-													&& greedPrev[qp] != np) {
-												greedPrev[np] = qp;
+											if (np < NN && s[dp] != NONE && s[np] == NONE && prev[np] == -1
+													&& prev[qp] != np) {
+												prev[np] = qp;
 												dist[np] = dist[qp] + 1;
 												if (index[np] != -1 && Math.abs(index[p] - index[np]) < dist[np]) {
 													int add = dist[np] - Math.abs(index[p] - index[np]);
@@ -396,14 +364,14 @@ public class PegJumping15 {
 													System.arraycopy(next, start, tmp, start + add, next.length - start);
 													if (index[p] < index[np]) {
 														for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
 														}
 													} else {
 														for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
@@ -418,9 +386,9 @@ public class PegJumping15 {
 											}
 											np = qp - N2;
 											dp = qp - N;
-											if (np >= 0 && s[dp] != NONE && s[np] == NONE && greedPrev[np] == -1
-													&& greedPrev[qp] != np) {
-												greedPrev[np] = qp;
+											if (np >= 0 && s[dp] != NONE && s[np] == NONE && prev[np] == -1
+													&& prev[qp] != np) {
+												prev[np] = qp;
 												dist[np] = dist[qp] + 1;
 												if (index[np] != -1 && Math.abs(index[p] - index[np]) < dist[np]) {
 													int add = dist[np] - Math.abs(index[p] - index[np]);
@@ -432,14 +400,14 @@ public class PegJumping15 {
 													System.arraycopy(next, start, tmp, start + add, next.length - start);
 													if (index[p] < index[np]) {
 														for (int tp = np, nindex = dist[np]; nindex > 0; --nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
 														}
 													} else {
 														for (int tp = np, nindex = 0; nindex < dist[np]; ++nindex) {
-															int prevp = greedPrev[tp];
+															int prevp = prev[tp];
 															s[delPos(tp, prevp)] = NONE;
 															tmp[start + nindex] = tp;
 															tp = prevp;
@@ -508,7 +476,6 @@ public class PegJumping15 {
 							res = new State(this, next, s, next.length);
 						}
 					}
-					s[i] = startCell;
 				}
 			}
 			return res;
@@ -581,6 +548,13 @@ public class PegJumping15 {
 			s.append(getDir(order[i - 1] - order[i]));
 		}
 		return s.toString();
+	}
+
+	private int[] to(List<Integer> list) {
+		int res[] = new int[list.size()];
+		for (int i = 0; i < res.length; ++i)
+			res[i] = list.get(i);
+		return res;
 	}
 
 	private static final int delPos(int p1, int p2) {
