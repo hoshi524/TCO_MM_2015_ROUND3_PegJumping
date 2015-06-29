@@ -3,7 +3,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class PegJumping15 {
+public class PegJumping17 {
 
 	private static final int MAX_TIME = 14500;
 	private static final boolean DEBUG = true;
@@ -201,6 +201,39 @@ public class PegJumping15 {
 		}
 
 		State getScore(boolean[] black) {
+			UnionFind uf = new UnionFind();
+			{
+				List<Integer> list = new ArrayList<>();
+				for (int p = 0; p < NN; ++p) {
+					if (black[p] && s[p] == NONE) {
+						list.clear();
+						int x = getX(p), dp, np;
+						dp = p + 1;
+						np = p + 2;
+						if (x + 2 < N && s[dp] != NONE) {
+							list.add(dp);
+						}
+						dp = p - 1;
+						np = p - 2;
+						if (x - 2 >= 0 && s[dp] != NONE) {
+							list.add(dp);
+						}
+						dp = p + N;
+						np = p + N2;
+						if (np < NN && s[dp] != NONE) {
+							list.add(dp);
+						}
+						dp = p - N;
+						np = p - N2;
+						if (np >= 0 && s[dp] != NONE) {
+							list.add(dp);
+						}
+						for (int i = 0, size = list.size(); i < size; ++i)
+							for (int j = i + 1; j < size; ++j)
+								uf.unite(list.get(i), list.get(j));
+					}
+				}
+			}
 			State res = new State();
 			final int max = NN >> 2, width = 10, mask = (1 << 6) - 1;
 			int size[] = new int[max], dist[] = new int[NN];
@@ -208,7 +241,20 @@ public class PegJumping15 {
 			int index[] = new int[NN], queue[] = new int[max], greedPrev[] = new int[NN];
 			long bit[] = new long[(NN >> 6) + 1];
 			for (int i = 0; i < NN; ++i) {
-				if (black[i] && s[i] != NONE && isStart(i, s)) {
+				if (black[i] && s[i] != NONE) {
+					{
+						int a = 0, x = getX(i);
+						if (x + 1 < N)
+							a = Math.max(a, uf.count(i + 1));
+						if (x - 1 >= 0)
+							a = Math.max(a, uf.count(i - 1));
+						if (i + N < NN)
+							a = Math.max(a, uf.count(i + N));
+						if (i - N >= 0)
+							a = Math.max(a, uf.count(i - N));
+						if (a < best.score)
+							continue;
+					}
 					byte startCell = s[i];
 					s[i] = NONE;
 					Arrays.fill(size, 0);
@@ -502,6 +548,54 @@ public class PegJumping15 {
 				}
 			}
 			return res;
+		}
+	}
+
+	class UnionFind {
+		private static final int MAX = 60 * 60 + 5;
+		int[] par = new int[MAX], rank = new int[MAX], cnt = new int[MAX];
+
+		public UnionFind() {
+			init();
+		}
+
+		void init() {
+			for (int i = 0; i < MAX; ++i) {
+				par[i] = i;
+			}
+			Arrays.fill(rank, 0);
+			Arrays.fill(cnt, 1);
+		}
+
+		int find(int x) {
+			if (par[x] == x)
+				return x;
+			else {
+				return par[x] = find(par[x]);
+			}
+		}
+
+		void unite(int x, int y) {
+			x = find(x);
+			y = find(y);
+			if (x == y)
+				return;
+			cnt[x] = cnt[y] = cnt[x] + cnt[y];
+			if (rank[x] < rank[y]) {
+				par[x] = y;
+			} else {
+				par[y] = x;
+				if (rank[x] == rank[y])
+					++rank[x];
+			}
+		}
+
+		boolean same(int x, int y) {
+			return find(x) == find(y);
+		}
+
+		int count(int x) {
+			return cnt[find(x)];
 		}
 	}
 
