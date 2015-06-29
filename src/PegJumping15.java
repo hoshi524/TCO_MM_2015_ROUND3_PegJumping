@@ -1,11 +1,9 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-public class PegJumping14 {
+public class PegJumping15 {
 
 	private static final int MAX_TIME = 14500;
 	private static final boolean DEBUG = false;
@@ -52,7 +50,7 @@ public class PegJumping14 {
 			while (true) {
 				List<State> next = new ArrayList<>();
 				Collections.sort(states, (o1, o2) -> o2.score - o1.score);
-				for (int i = 0, size = Math.min(states.size(), 1); i < size; ++i) {
+				for (int i = 0, size = Math.min(states.size(), 2); i < size; ++i) {
 					next.addAll(states.get(i).child(white[w], black[w]));
 				}
 				if (next.isEmpty())
@@ -168,20 +166,21 @@ public class PegJumping14 {
 			}
 			if (start.isEmpty())
 				return res;
-			Set<Integer> used = new HashSet<>();
-			for (int i = 0; i < 10; ++i) {
-				int p = start.get(rnd.nextInt(start.size()));
-				if (used.contains(p))
-					continue;
-				used.add(p);
-				int x = getX(p), np, dp;
+			int min = Math.min(10, start.size());
+			boolean used[] = new boolean[start.size()];
+			for (int i = 0; i < min; ++i) {
+				int ri = rnd.nextInt(start.size());
+				if (used[ri])
+					ri = (ri + 1) % start.size();
+				used[ri] = true;
+				int p = start.get(ri), x = getX(p), np, dp;
 				np = p + 2;
 				dp = p + 1;
 				if (x + 2 < N && s[dp] != NONE && s[np] == NONE) {
 					byte[] s = Arrays.copyOf(this.s, this.s.length);
 					s[np] = s[p];
 					s[p] = s[dp] = NONE;
-					res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 16 : 0) + next(s, np)));
+					res.add(new State(this, new int[] { np, p }, s, score + (black[dp] ? 16 : 0) + next(s, np)));
 				}
 				np = p - 2;
 				dp = p - 1;
@@ -189,7 +188,7 @@ public class PegJumping14 {
 					byte[] s = Arrays.copyOf(this.s, this.s.length);
 					s[np] = s[p];
 					s[p] = s[dp] = NONE;
-					res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 16 : 0) + next(s, np)));
+					res.add(new State(this, new int[] { np, p }, s, score + (black[dp] ? 16 : 0) + next(s, np)));
 				}
 				np = p + N2;
 				dp = p + N;
@@ -197,7 +196,7 @@ public class PegJumping14 {
 					byte[] s = Arrays.copyOf(this.s, this.s.length);
 					s[np] = s[p];
 					s[p] = s[dp] = NONE;
-					res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 16 : 0) + next(s, np)));
+					res.add(new State(this, new int[] { np, p }, s, score + (black[dp] ? 16 : 0) + next(s, np)));
 				}
 				np = p - N2;
 				dp = p - N;
@@ -205,7 +204,7 @@ public class PegJumping14 {
 					byte[] s = Arrays.copyOf(this.s, this.s.length);
 					s[np] = s[p];
 					s[p] = s[dp] = NONE;
-					res.add(new State(this, new int[] { np, p }, s, this.score + (black[dp] ? 16 : 0) + next(s, np)));
+					res.add(new State(this, new int[] { np, p }, s, score + (black[dp] ? 16 : 0) + next(s, np)));
 				}
 			}
 			return res;
@@ -213,7 +212,7 @@ public class PegJumping14 {
 
 		State getScore(boolean[] black) {
 			State res = new State();
-			final int max = NN >> 2, width = 20, mask = (1 << 6) - 1;
+			final int max = NN >> 2, width = 10, mask = (1 << 6) - 1;
 			int size[] = new int[max], dist[] = new int[NN];
 			int pos[][] = new int[max][width], prev[][] = new int[max][width];
 			int index[] = new int[NN], queue[] = new int[max], greedPrev[] = new int[NN];
@@ -287,12 +286,10 @@ public class PegJumping14 {
 						byte[] s = Arrays.copyOf(this.s, this.s.length);
 						boolean ok[] = new boolean[NN];
 						Arrays.fill(ok, true);
-						int score = 0;
 						for (int k = maxj, pre = j; k > 0; pre = prev[k][pre], --k) {
 							int a = pos[k][pre], b = pos[k - 1][prev[k][pre]];
 							next[ns++] = a;
 							int deletePos = delPos(a, b);
-							score += s[deletePos];
 							s[deletePos] = NONE;
 							ok[a] = ok[b] = ok[deletePos] = false;
 						}
@@ -510,9 +507,8 @@ public class PegJumping14 {
 								}
 							}
 						}
-						score *= next.length - 1;
-						if (res.score < score) {
-							res = new State(this, next, s, score);
+						if (res.score < next.length) {
+							res = new State(this, next, s, next.length);
 						}
 					}
 					s[i] = startCell;
