@@ -17,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.SecureRandom;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -294,7 +295,6 @@ class Drawer extends JFrame {
 
 	class DrawerWindowListener extends WindowAdapter {
 		public void windowClosing(WindowEvent event) {
-			System.exit(0);
 		}
 	}
 
@@ -397,6 +397,7 @@ public class PegJumpVis {
 					drawer.processPause();
 					drawer.repaint();
 					try {
+						new Scanner(System.in).nextLine();
 						Thread.sleep(delay);
 					} catch (Exception e) {
 						// do nothing
@@ -426,13 +427,12 @@ public class PegJumpVis {
 			} else {
 				System.out.println("WARNING: unknown argument " + args[i] + ".");
 			}
-
-		if (false) {
+		if (true) {
 			vis = true;
 			try {
-				for (long seed = 100; seed <= 1000; ++seed) {
+				for (long seed = 6; seed <= 1000; ++seed) {
 					TestCase tc = new TestCase(seed);
-					int score = new PegJumpVis().setResult(tc, new PegJumping15().getMoves(tc.pegValue, tc.getBoard()));
+					int score = new PegJumpVis().setResult(tc, new PegJumping18().getMoves(tc.pegValue, tc.getBoard()));
 					System.out.println("Seed = " + seed + "   Score = " + score);
 				}
 			} catch (RuntimeException e) {
@@ -452,7 +452,7 @@ public class PegJumpVis {
 		}
 		PegJumpVis.debug = false;
 		final ParameterClass sum0 = new ParameterClass(), sum1 = new ParameterClass();
-		ExecutorService es = Executors.newFixedThreadPool(6);
+		ExecutorService es = Executors.newFixedThreadPool(3);
 
 		for (int seed = 1, size = seed + 1000; seed < size; seed++) {
 			final int Seed = seed;
@@ -465,7 +465,7 @@ public class PegJumpVis {
 					int score0 = new PegJumpVis().setResult(tc, res0);
 					tc = new TestCase(Seed);
 					long start1 = System.currentTimeMillis();
-					String res1[] = new PegJumping15().getMoves(tc.pegValue, tc.getBoard());
+					String res1[] = new PegJumping().getMoves(tc.pegValue, tc.getBoard());
 					long end1 = System.currentTimeMillis();
 					int score1 = new PegJumpVis().setResult(tc, res1);
 					int max = Math.max(score0, score1);

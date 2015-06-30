@@ -35,7 +35,7 @@ public class PegJumping18 {
 					white[w][getPos(y, x)] = !white[w][getPos(y - 1, x)];
 				}
 			}
-			for (int y = (w <= 4 >> 1 ? 0 : 1); y < N; y += 2) {
+			for (int y = (w < 2 ? 0 : 1); y < N; y += 2) {
 				for (int x = 0; x < N; ++x) {
 					black[w][getPos(y, x)] = !white[w][getPos(y, x)];
 				}
