@@ -17,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.SecureRandom;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -396,7 +397,7 @@ public class PegJumpVis {
 					drawer.processPause();
 					drawer.repaint();
 					try {
-						// new Scanner(System.in).nextLine();
+						new Scanner(System.in).nextLine();
 						Thread.sleep(delay);
 					} catch (Exception e) {
 						// do nothing
@@ -426,19 +427,19 @@ public class PegJumpVis {
 			} else {
 				System.out.println("WARNING: unknown argument " + args[i] + ".");
 			}
-		if (true) {
+		if (false) {
 			vis = true;
 			try {
-				for (long seed = 10; seed <= 1000; ++seed) {
-					{
-						TestCase tc = new TestCase(seed);
-						int score = new PegJumpVis().setResult(tc, new None().getMoves(tc.pegValue, tc.getBoard()));
-						System.out.println("Seed = " + seed + "   Score = " + score);
-					}
+				for (long seed = 11; seed <= 11; ++seed) {
+					//					{
+					//						TestCase tc = new TestCase(seed);
+					//						int score = new PegJumpVis().setResult(tc, new None().getMoves(tc.pegValue, tc.getBoard()));
+					//						System.out.println("Seed = " + seed + "   Score = " + score);
+					//					}
 					{
 						TestCase tc = new TestCase(seed);
 						int score = new PegJumpVis().setResult(tc,
-								new PegJumping18().getMoves(tc.pegValue, tc.getBoard()));
+								new PegJumping().getMoves(tc.pegValue, tc.getBoard()));
 						System.out.println("Seed = " + seed + "   Score = " + score);
 					}
 					//					{
@@ -465,7 +466,7 @@ public class PegJumpVis {
 		}
 		PegJumpVis.debug = false;
 		final ParameterClass sum0 = new ParameterClass(), sum1 = new ParameterClass();
-		ExecutorService es = Executors.newFixedThreadPool(3);
+		ExecutorService es = Executors.newFixedThreadPool(6);
 
 		for (int seed = 1, size = seed + 1000; seed < size; seed++) {
 			final int Seed = seed;
@@ -473,12 +474,12 @@ public class PegJumpVis {
 				try {
 					TestCase tc = new TestCase(Seed);
 					long start0 = System.currentTimeMillis();
-					String res0[] = new PegJumping18().getMoves(tc.pegValue, tc.getBoard());
+					String res0[] = new PegJumping().getMoves(tc.pegValue, tc.getBoard());
 					long end0 = System.currentTimeMillis();
 					int score0 = new PegJumpVis().setResult(tc, res0);
 					tc = new TestCase(Seed);
 					long start1 = System.currentTimeMillis();
-					String res1[] = new PegJumping19().getMoves(tc.pegValue, tc.getBoard());
+					String res1[] = new PegJumping().getMoves(tc.pegValue, tc.getBoard());
 					long end1 = System.currentTimeMillis();
 					int score1 = new PegJumpVis().setResult(tc, res1);
 					int max = Math.max(score0, score1);
